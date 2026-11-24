@@ -1,21 +1,16 @@
 import type { SellSubmissionRecord } from '../types/buyback';
 
-const SUBMISSIONS_STORAGE_KEY = 'ragonbns_submissions_v1';
+const SUBMISSIONS_STORAGE_KEY = 'arsouq_submissions_v1';
 
-/**
- * Clean client-side persistence adapter designed so an API client
- * (REST / Supabase / Firebase) and Admin Dashboard can consume the
- * exact same SellSubmissionRecord contract later.
- */
 export function saveSellSubmission(
   payload: Omit<SellSubmissionRecord, 'referenceCode' | 'createdAtIso' | 'status'>
 ): SellSubmissionRecord {
   const randomDigits = Math.floor(10000 + Math.random() * 90000);
   const record: SellSubmissionRecord = {
     ...payload,
-    referenceCode: `RBN-DXB-${randomDigits}`,
+    referenceCode: `ARS-DXB-${randomDigits}`,
     createdAtIso: new Date().toISOString(),
-    status: 'pending_pickup',
+    status: payload.valuation.isAgentQuote ? 'agent_quote_pending' : 'pending_pickup',
   };
 
   try {

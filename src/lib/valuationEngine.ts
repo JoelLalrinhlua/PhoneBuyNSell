@@ -1,8 +1,4 @@
-import {
-  ACCESSORY_BONUSES,
-  CONDITION_TIERS,
-  KNOWN_ISSUES_CATALOG,
-} from '../data/catalog';
+import { CONDITION_TIERS } from '../data/catalog';
 import type {
   ConditionId,
   DeviceEvaluation,
@@ -21,151 +17,168 @@ export function getMaxModelPriceAed(model: PhoneModel): number {
   return model.basePriceAed + maxStorageDelta;
 }
 
+/**
+ * Resolves the exact arsouq condition tier & fixed AED deduction:
+ *  - Zero Scratch (Flawless):           -AED 0
+ *  - Small Scratch:                     -AED 150
+ *  - Medium Scratch:                    -AED 400
+ *  - Parts Change (Genuine Part):       -AED 500
+ *  - More Scratch / Dent / Broken:      -AED 700
+ *  - Hardware Issue / Unknown Parts:    -AED 1,000
+ *  - Others:                            Reply by agent
+ */
+export function resolveEffectiveTier(
+  selectedConditionId: ConditionId,
+  evaluation: DeviceEvaluation
+): ConditionId {
+  if (
+    selectedConditionId === 'others-agent' ||
+    evaluation.functionalStatus === 'other-agent-issue'
+  ) {
+    return 'others-agent';
+  }
+
+  const tierRank: Record<Exclude<ConditionId, 'others-agent'>, number> = {
+    'zero-scratch': 0,
+    'small-scratch': 150,
+    'medium-scratch': 400,
+    'parts-change-genuine': 500,
+    'more-scratch-broken': 700,
+    'hardware-unknown-parts': 1000,
+  };
+
+  let requiredDeduction = tierRank[selectedConditionId];
+
+  // Battery Health rules from arsouq table:
+  // Zero Scratch requires 90%+; 85-89% moves at least to Small Scratch (-150); <85% moves at least to Medium Scratch (-400)
+  if (evaluation.batteryHealth === '85-89') {
+    requiredDeduction = Math.max(requiredDeduction, 150);
+  } else if (evaluation.batteryHealth === 'below-85') {
+    requiredDeduction = Math.max(requiredDeduction, 400);
+  }
+
+  // Screen rules:
+  if (evaluation.screenStatus === 'small-scratch') {
+    requiredDeduction = Math.max(requiredDeduction, 150);
+  } else if (evaluation.screenStatus === 'medium-deep-scratch') {
+    requiredDeduction = Math.max(requiredDeduction, 400);
+  } else if (evaluation.screenStatus === 'display-crack') {
+    requiredDeduction = Math.max(requiredDeduction, 700);
+  } else if (evaluation.screenStatus === 'display-not-working') {
+    requiredDeduction = Math.max(requiredDeduction, 1000);
+  }
+
+  // Body & Parts rules:
+  if (evaluation.bodyPartsStatus === 'small-body-scratch') {
+    requiredDeduction = Math.max(requiredDeduction, 150);
+  } else if (evaluation.bodyPartsStatus === 'body-dent-scratch') {
+    requiredDeduction = Math.max(requiredDeduction, 400);
+  } else if (evaluation.bodyPartsStatus === 'genuine-part-changed') {
+    requiredDeduction = Math.max(requiredDeduction, 500);
+  } else if (evaluation.bodyPartsStatus === 'back-glass-broken-dent') {
+    requiredDeduction = Math.max(requiredDeduction, 700);
+  } else if (evaluation.bodyPartsStatus === 'unknown-unofficial-part') {
+    requiredDeduction = Math.max(requiredDeduction, 1000);
+  }
+
+  // Functional rules:
+  if (evaluation.functionalStatus === 'mic-speaker-camera-dot') {
+    requiredDeduction = Math.max(requiredDeduction, 700);
+  } else if (evaluation.functionalStatus === 'faceid-hardware-issue') {
+    requiredDeduction = Math.max(requiredDeduction, 1000);
+  }
+
+  const entry = (Object.entries(tierRank) as [Exclude<ConditionId, 'others-agent'>, number][]).find(
+    ([, ded]) => ded === requiredDeduction
+  );
+
+  return entry ? entry[0] : 'zero-scratch';
+}
+
 export function calculateValuation(
-  model: PhoneModel,
-  storageCapacity: StorageCapacity,
+  model: PhoneModel | null,
+  storageCapacity: StorageCapacity | null,
   conditionId: ConditionId,
   evaluation: DeviceEvaluation
 ): ValuationBreakdown {
+  if (!model) {
+    return {
+      currency: 'AED',
+      isAgentQuote: true,
+      appliedTierId: 'others-agent',
+      appliedTierTitle: 'Others — Reply by Agent',
+      maxPossibleAed: 0,
+      storageBaseAed: 0,
+      deductionAed: 0,
+      finalEstimateAed: 0,
+      priceLockDays: 7,
+      lineItems: [],
+    };
+  }
+
   const storageOpt =
     model.storageOptions.find((s) => s.capacity === storageCapacity) ?? model.storageOptions[0];
-  const conditionTier =
-    CONDITION_TIERS.find((c) => c.id === conditionId) ?? CONDITION_TIERS[0];
-
   const storageBaseAed = model.basePriceAed + storageOpt.priceDeltaAed;
   const maxPossibleAed = getMaxModelPriceAed(model);
+
+  const effectiveTierId = resolveEffectiveTier(conditionId, evaluation);
+  const tierObj =
+    CONDITION_TIERS.find((t) => t.id === effectiveTierId) ?? CONDITION_TIERS[0];
+
+  if (effectiveTierId === 'others-agent' || tierObj.deductionAed === null) {
+    return {
+      currency: 'AED',
+      isAgentQuote: true,
+      appliedTierId: 'others-agent',
+      appliedTierTitle: 'Others — Reply by Agent',
+      maxPossibleAed,
+      storageBaseAed,
+      deductionAed: 0,
+      finalEstimateAed: 0,
+      priceLockDays: 7,
+      lineItems: [
+        {
+          id: 'base',
+          label: `${model.name} (${storageOpt.capacity})`,
+          detail: 'Zero Scratch reference value',
+          amountAed: storageBaseAed,
+          kind: 'base',
+        },
+      ],
+    };
+  }
+
+  const deductionAed = tierObj.deductionAed;
+  const finalEstimateAed = Math.max(150, storageBaseAed - deductionAed);
 
   const lineItems: ValuationLineItem[] = [
     {
       id: 'base',
       label: `${model.name} (${storageOpt.capacity})`,
-      detail: 'Base UAE market buyback valuation',
+      detail: 'Zero Scratch (Flawless) base price',
       amountAed: storageBaseAed,
       kind: 'base',
     },
   ];
 
-  const rawConditionValue = Math.round((storageBaseAed * conditionTier.multiplier) / 10) * 10;
-  const conditionDeduction = rawConditionValue - storageBaseAed;
-
-  if (conditionDeduction < 0) {
+  if (deductionAed > 0) {
     lineItems.push({
-      id: 'condition',
-      label: `Condition Grade: ${conditionTier.title}`,
-      detail: conditionTier.shortLabel,
-      amountAed: conditionDeduction,
+      id: 'tier-deduction',
+      label: tierObj.title,
+      detail: tierObj.summary,
+      amountAed: -deductionAed,
       kind: 'deduction',
     });
   }
-
-  let diagnosticsDeltaAed = 0;
-
-  // Battery Health modifier
-  if (evaluation.batteryHealth === '80-89') {
-    const ded = -90;
-    diagnosticsDeltaAed += ded;
-    lineItems.push({
-      id: 'battery',
-      label: 'Battery Health (80% – 89%)',
-      amountAed: ded,
-      kind: 'deduction',
-    });
-  } else if (evaluation.batteryHealth === 'below-80') {
-    const ded = -210;
-    diagnosticsDeltaAed += ded;
-    lineItems.push({
-      id: 'battery',
-      label: 'Battery Service Required (<80%)',
-      amountAed: ded,
-      kind: 'deduction',
-    });
-  }
-
-  // Screen evaluation modifier (beyond base condition if degraded)
-  if (evaluation.screenStatus === 'visible-wear' && conditionId !== 'fair' && conditionId !== 'damaged') {
-    const ded = -160;
-    diagnosticsDeltaAed += ded;
-    lineItems.push({
-      id: 'screen',
-      label: 'Visible Display Surface Wear',
-      amountAed: ded,
-      kind: 'deduction',
-    });
-  } else if (evaluation.screenStatus === 'cracked' && conditionId !== 'damaged') {
-    const ded = -480;
-    diagnosticsDeltaAed += ded;
-    lineItems.push({
-      id: 'screen',
-      label: 'Display Glass / OLED Replacement Adjustment',
-      amountAed: ded,
-      kind: 'deduction',
-    });
-  }
-
-  // Body evaluation modifier
-  if (evaluation.bodyStatus === 'dents-cracks' && conditionId !== 'damaged') {
-    const ded = -240;
-    diagnosticsDeltaAed += ded;
-    lineItems.push({
-      id: 'body',
-      label: 'Enclosure Dent / Rear Glass Adjustment',
-      amountAed: ded,
-      kind: 'deduction',
-    });
-  }
-
-  // Core functionality modifier
-  if (evaluation.functionalStatus === 'minor-issue') {
-    const ded = -190;
-    diagnosticsDeltaAed += ded;
-    lineItems.push({
-      id: 'functional',
-      label: 'Hardware Diagnostic Adjustment',
-      amountAed: ded,
-      kind: 'deduction',
-    });
-  }
-
-  // Specific Known Issues
-  for (const issueId of evaluation.knownIssues) {
-    const found = KNOWN_ISSUES_CATALOG.find((i) => i.id === issueId);
-    if (found) {
-      diagnosticsDeltaAed -= found.deductionAed;
-      lineItems.push({
-        id: `issue-${found.id}`,
-        label: found.label,
-        amountAed: -found.deductionAed,
-        kind: 'deduction',
-      });
-    }
-  }
-
-  // Included Accessories / Warranty Bonuses
-  let accessoriesBonusAed = 0;
-  for (const bonusId of evaluation.accessories) {
-    const found = ACCESSORY_BONUSES.find((b) => b.id === bonusId);
-    if (found) {
-      accessoriesBonusAed += found.bonusAed;
-      lineItems.push({
-        id: `bonus-${found.id}`,
-        label: found.label,
-        amountAed: found.bonusAed,
-        kind: 'addition',
-      });
-    }
-  }
-
-  const minimumFloorAed = Math.max(180, Math.round((storageBaseAed * 0.18) / 10) * 10);
-  const rawFinal = rawConditionValue + diagnosticsDeltaAed + accessoriesBonusAed;
-  const finalEstimateAed = Math.max(minimumFloorAed, Math.round(rawFinal / 10) * 10);
 
   return {
     currency: 'AED',
+    isAgentQuote: false,
+    appliedTierId: effectiveTierId,
+    appliedTierTitle: tierObj.title,
     maxPossibleAed,
     storageBaseAed,
-    conditionAdjustedAed: rawConditionValue,
-    diagnosticsDeltaAed,
-    accessoriesBonusAed,
+    deductionAed,
     finalEstimateAed,
     priceLockDays: 7,
     lineItems,

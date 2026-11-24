@@ -11,72 +11,65 @@ export const Navbar: React.FC = () => {
     <>
       <a
         href="#main-content"
-        className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:rounded-full focus:bg-[#0A0A0C] focus:px-5 focus:py-2.5 focus:text-sm focus:font-medium focus:text-white"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:rounded-full focus:bg-[#2095D3] focus:px-5 focus:py-2.5 focus:text-sm focus:font-semibold focus:text-white"
       >
         Skip to content
       </a>
 
-      <header
-        className={`sticky top-0 z-40 w-full border-b transition-colors duration-300 ${
-          isSellPage
-            ? 'border-[#E6E6E3] bg-white/95 backdrop-blur-md'
-            : 'border-[#E3E2DC] bg-[#F0EFEA]/90 backdrop-blur-md'
-        }`}
-      >
-        <div className="mx-auto flex h-16 max-w-[1360px] items-center justify-between px-5 sm:px-8 lg:px-12">
-          {/* Clean Top-Left Website Name Wordmark (Logo icon removed) */}
+      <header className="sticky top-0 z-40 w-full border-b border-[#E2E8F0]/85 bg-white/95 backdrop-blur-md transition-colors duration-200">
+        <div className="mx-auto flex h-14 max-w-[1280px] items-center justify-between px-4 sm:h-16 sm:px-8 lg:px-10">
+          {/* Official arsouq Logo */}
           <Link
             to="/"
             onClick={() => setMenuOpen(false)}
-            className="font-['Plus_Jakarta_Sans'] text-xl font-extrabold tracking-[-0.04em] text-[#0A0A0C] transition-opacity hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#0A0A0C]"
+            aria-label="arsouq — Home"
+            className="inline-flex items-center py-1 transition-opacity hover:opacity-85 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#2095D3]"
           >
-            RagonBnS
+            <img
+              src="/images/arsouq-logo-nav.png"
+              alt="arsouq.com"
+              width={118}
+              height={43}
+              className="h-7 w-auto object-contain sm:h-8.5"
+            />
           </Link>
 
-          {/* Center Minimal Nav Links */}
-          <nav aria-label="Main navigation" className="hidden items-center gap-9 md:flex">
+          {/* Minimal Center Navigation (Sell Phone nav item removed as requested) */}
+          <nav aria-label="Main navigation" className="hidden items-center gap-8 md:flex">
             <Link
               to="/"
-              className={`nav-link-underline text-xs font-medium tracking-[0.12em] uppercase transition-colors hover:text-[#0A0A0C] ${
-                location.pathname === '/' ? 'nav-link-active text-[#0A0A0C]' : 'text-[#52525B]'
+              className={`nav-link-underline text-xs font-semibold tracking-[0.08em] uppercase transition-colors hover:text-[#0F172A] ${
+                location.pathname === '/' ? 'nav-link-active text-[#0F172A]' : 'text-[#64748B]'
               }`}
             >
               Home
             </Link>
             <a
               href={isSellPage ? '/#brands' : '#brands'}
-              className="nav-link-underline text-xs font-medium tracking-[0.12em] text-[#52525B] uppercase transition-colors hover:text-[#0A0A0C]"
+              className="nav-link-underline text-xs font-semibold tracking-[0.08em] text-[#64748B] uppercase transition-colors hover:text-[#0F172A]"
             >
               Brands
             </a>
             <a
               href={isSellPage ? '/#process' : '#process'}
-              className="nav-link-underline text-xs font-medium tracking-[0.12em] text-[#52525B] uppercase transition-colors hover:text-[#0A0A0C]"
+              className="nav-link-underline text-xs font-semibold tracking-[0.08em] text-[#64748B] uppercase transition-colors hover:text-[#0F172A]"
             >
               Process
             </a>
             <a
-              href={isSellPage ? '/#benefits' : '#benefits'}
-              className="nav-link-underline text-xs font-medium tracking-[0.12em] text-[#52525B] uppercase transition-colors hover:text-[#0A0A0C]"
+              href={isSellPage ? '/#standards' : '#standards'}
+              className="nav-link-underline text-xs font-semibold tracking-[0.08em] text-[#64748B] uppercase transition-colors hover:text-[#0F172A]"
             >
               Standards
             </a>
-            <Link
-              to="/sell"
-              className={`nav-link-underline text-xs font-medium tracking-[0.12em] uppercase transition-colors hover:text-[#0A0A0C] ${
-                isSellPage ? 'nav-link-active font-semibold text-[#0A0A0C]' : 'text-[#52525B]'
-              }`}
-            >
-              Sell Phone
-            </Link>
           </nav>
 
-          {/* Right CTA */}
-          <div className="flex items-center gap-3">
+          {/* Single Header Action */}
+          <div className="flex items-center gap-2">
             {!isSellPage ? (
               <Link
                 to="/sell"
-                className="btn-press btn-sheen hidden items-center gap-1.5 rounded-full bg-[#0A0A0C] px-5 py-2 text-xs font-semibold text-white hover:bg-[#232326] sm:inline-flex"
+                className="btn-press inline-flex items-center gap-1.5 rounded-full bg-[#2095D3] px-4 py-2 text-xs font-semibold text-white shadow-[0_4px_12px_rgba(32,149,211,0.22)] hover:bg-[#187BB2] sm:px-5"
               >
                 <span>Sell Phone</span>
                 <ArrowUpRight className="h-3.5 w-3.5" />
@@ -84,76 +77,65 @@ export const Navbar: React.FC = () => {
             ) : (
               <Link
                 to="/"
-                className="btn-press hidden items-center gap-1.5 rounded-full border border-[#D8D8D4] bg-white px-4 py-2 text-xs font-medium text-[#0A0A0C] hover:border-[#0A0A0C] sm:inline-flex"
+                className="btn-press inline-flex items-center rounded-full border border-[#CBD5E1] bg-white px-4 py-1.5 text-xs font-semibold text-[#0F172A] hover:border-[#2095D3] hover:text-[#2095D3]"
               >
                 Home
               </Link>
             )}
 
-            {/* Mobile 4-Dot Grid Button */}
             <button
               type="button"
               onClick={() => setMenuOpen((v) => !v)}
               aria-expanded={menuOpen}
-              aria-label={menuOpen ? 'Close navigation menu' : 'Open navigation menu'}
-              className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full text-[#0A0A0C] transition-colors hover:bg-black/5 md:hidden"
+              aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+              className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-[#0F172A] transition-colors hover:bg-slate-200/60 md:hidden"
             >
               {menuOpen ? (
                 <X className="h-5 w-5" />
               ) : (
                 <svg viewBox="0 0 20 20" className="h-5 w-5" fill="currentColor" aria-hidden="true">
-                  <circle cx="6" cy="6" r="2" />
-                  <circle cx="14" cy="6" r="2" />
-                  <circle cx="6" cy="14" r="2" />
-                  <circle cx="14" cy="14" r="2" />
+                  <circle cx="6" cy="6" r="1.8" />
+                  <circle cx="14" cy="6" r="1.8" />
+                  <circle cx="6" cy="14" r="1.8" />
+                  <circle cx="14" cy="14" r="1.8" />
                 </svg>
               )}
             </button>
           </div>
         </div>
 
-        {/* Clean Mobile Navigation Drawer */}
+        {/* Clean Mobile Drawer (No duplicate Sell Phone link since CTA pill is in top bar) */}
         {menuOpen && (
-          <div className="route-enter border-t border-[#E5E4DF] bg-white px-5 pt-4 pb-6 md:hidden">
-            <nav className="flex flex-col gap-1" aria-label="Mobile navigation">
+          <div className="route-enter border-t border-[#E2E8F0] bg-white px-4 py-3 md:hidden">
+            <nav className="flex flex-col gap-0.5" aria-label="Mobile navigation">
               <Link
                 to="/"
                 onClick={() => setMenuOpen(false)}
-                className="rounded-xl px-3 py-3 text-base font-medium text-[#0A0A0C] hover:bg-[#F5F5F3]"
+                className="rounded-xl px-3 py-2.5 text-sm font-semibold text-[#0F172A] hover:bg-[#F6F8FB]"
               >
                 Home
               </Link>
               <a
                 href={isSellPage ? '/#brands' : '#brands'}
                 onClick={() => setMenuOpen(false)}
-                className="rounded-xl px-3 py-3 text-base font-medium text-[#0A0A0C] hover:bg-[#F5F5F3]"
+                className="rounded-xl px-3 py-2.5 text-sm font-semibold text-[#0F172A] hover:bg-[#F6F8FB]"
               >
-                Supported Brands
+                Brands
               </a>
               <a
                 href={isSellPage ? '/#process' : '#process'}
                 onClick={() => setMenuOpen(false)}
-                className="rounded-xl px-3 py-3 text-base font-medium text-[#0A0A0C] hover:bg-[#F5F5F3]"
+                className="rounded-xl px-3 py-2.5 text-sm font-semibold text-[#0F172A] hover:bg-[#F6F8FB]"
               >
-                Selling Process
+                Process
               </a>
               <a
-                href={isSellPage ? '/#benefits' : '#benefits'}
+                href={isSellPage ? '/#standards' : '#standards'}
                 onClick={() => setMenuOpen(false)}
-                className="rounded-xl px-3 py-3 text-base font-medium text-[#0A0A0C] hover:bg-[#F5F5F3]"
+                className="rounded-xl px-3 py-2.5 text-sm font-semibold text-[#0F172A] hover:bg-[#F6F8FB]"
               >
-                Platform Benefits
+                Standards
               </a>
-              <div className="mt-3 flex items-center justify-end border-t border-[#ECECE9] pt-4">
-                <Link
-                  to="/sell"
-                  onClick={() => setMenuOpen(false)}
-                  className="btn-press inline-flex items-center gap-1.5 rounded-full bg-[#0A0A0C] px-5 py-2.5 text-sm font-semibold text-white"
-                >
-                  Sell Phone
-                  <ArrowUpRight className="h-4 w-4" />
-                </Link>
-              </div>
             </nav>
           </div>
         )}

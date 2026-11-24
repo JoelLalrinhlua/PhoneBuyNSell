@@ -1,18 +1,12 @@
-import type {
-  Brand,
-  ConditionTier,
-  PhoneModel,
-  KnownIssueId,
-  AccessoryBonusId,
-} from '../types/buyback';
+import type { Brand, ConditionTier, PhoneModel } from '../types/buyback';
 
 export const BRANDS: Brand[] = [
   { id: 'apple', name: 'Apple', maxPayoutAed: 4450, deviceCount: 8 },
   { id: 'samsung', name: 'Samsung', maxPayoutAed: 4380, deviceCount: 7 },
   { id: 'google', name: 'Google', maxPayoutAed: 3240, deviceCount: 4 },
   { id: 'oneplus', name: 'OnePlus', maxPayoutAed: 2790, deviceCount: 4 },
-  { id: 'nothing', name: 'Nothing', maxPayoutAed: 1820, deviceCount: 3 },
   { id: 'xiaomi', name: 'Xiaomi', maxPayoutAed: 3150, deviceCount: 4 },
+  { id: 'nothing', name: 'Nothing', maxPayoutAed: 1820, deviceCount: 3 },
   { id: 'oppo', name: 'OPPO', maxPayoutAed: 2890, deviceCount: 3 },
   { id: 'vivo', name: 'vivo', maxPayoutAed: 2940, deviceCount: 3 },
   { id: 'motorola', name: 'Motorola', maxPayoutAed: 2460, deviceCount: 3 },
@@ -52,14 +46,14 @@ export const PHONE_MODELS: PhoneModel[] = [
     series: 'iPhone 16 Series',
     releaseYear: 2024,
     image: '/images/phone-pro-titanium.jpg',
-    basePriceAed: 3180,
+    basePriceAed: 3120,
     popular: true,
     specBadge: 'Pro 6.3"',
     storageOptions: [
       { capacity: '128 GB', priceDeltaAed: 0 },
-      { capacity: '256 GB', priceDeltaAed: 260 },
-      { capacity: '512 GB', priceDeltaAed: 610 },
-      { capacity: '1 TB', priceDeltaAed: 990 },
+      { capacity: '256 GB', priceDeltaAed: 250 },
+      { capacity: '512 GB', priceDeltaAed: 600 },
+      { capacity: '1 TB', priceDeltaAed: 980 },
     ],
     colors: [
       { name: 'Natural Titanium', hex: '#A5A29B' },
@@ -94,7 +88,7 @@ export const PHONE_MODELS: PhoneModel[] = [
     series: 'iPhone 15 Series',
     releaseYear: 2023,
     image: '/images/phone-pro-titanium.jpg',
-    basePriceAed: 2980,
+    basePriceAed: 3050,
     popular: true,
     storageOptions: [
       { capacity: '256 GB', priceDeltaAed: 0 },
@@ -135,7 +129,7 @@ export const PHONE_MODELS: PhoneModel[] = [
     series: 'iPhone 15 Series',
     releaseYear: 2023,
     image: '/images/phone-pro-titanium.jpg',
-    basePriceAed: 1920,
+    basePriceAed: 1990,
     storageOptions: [
       { capacity: '128 GB', priceDeltaAed: 0 },
       { capacity: '256 GB', priceDeltaAed: 210 },
@@ -154,7 +148,7 @@ export const PHONE_MODELS: PhoneModel[] = [
     series: 'iPhone 14 Series',
     releaseYear: 2022,
     image: '/images/phone-pro-titanium.jpg',
-    basePriceAed: 2260,
+    basePriceAed: 2200,
     storageOptions: [
       { capacity: '128 GB', priceDeltaAed: 0 },
       { capacity: '256 GB', priceDeltaAed: 200 },
@@ -174,7 +168,7 @@ export const PHONE_MODELS: PhoneModel[] = [
     series: 'iPhone 13 Series',
     releaseYear: 2021,
     image: '/images/phone-pro-titanium.jpg',
-    basePriceAed: 1480,
+    basePriceAed: 1550,
     storageOptions: [
       { capacity: '128 GB', priceDeltaAed: 0 },
       { capacity: '256 GB', priceDeltaAed: 170 },
@@ -200,7 +194,7 @@ export const PHONE_MODELS: PhoneModel[] = [
     specBadge: 'S-Pen Titanium',
     storageOptions: [
       { capacity: '256 GB', priceDeltaAed: 0 },
-      { capacity: '512 GB', priceDeltaAed: 340 },
+      { capacity: '512 GB', priceDeltaAed: 380 },
       { capacity: '1 TB', priceDeltaAed: 690 },
     ],
     colors: [
@@ -237,7 +231,7 @@ export const PHONE_MODELS: PhoneModel[] = [
     series: 'Galaxy S Series',
     releaseYear: 2024,
     image: '/images/phone-ultra-slate.jpg',
-    basePriceAed: 2240,
+    basePriceAed: 2200,
     storageOptions: [
       { capacity: '256 GB', priceDeltaAed: 0 },
       { capacity: '512 GB', priceDeltaAed: 280 },
@@ -271,7 +265,7 @@ export const PHONE_MODELS: PhoneModel[] = [
     series: 'Galaxy S Series',
     releaseYear: 2023,
     image: '/images/phone-ultra-slate.jpg',
-    basePriceAed: 2190,
+    basePriceAed: 2200,
     storageOptions: [
       { capacity: '256 GB', priceDeltaAed: 0 },
       { capacity: '512 GB', priceDeltaAed: 260 },
@@ -307,7 +301,7 @@ export const PHONE_MODELS: PhoneModel[] = [
     series: 'Galaxy S Series',
     releaseYear: 2023,
     image: '/images/phone-ultra-slate.jpg',
-    basePriceAed: 1460,
+    basePriceAed: 1550,
     storageOptions: [
       { capacity: '128 GB', priceDeltaAed: 0 },
       { capacity: '256 GB', priceDeltaAed: 180 },
@@ -365,7 +359,7 @@ export const PHONE_MODELS: PhoneModel[] = [
     series: 'Pixel 8 Series',
     releaseYear: 2023,
     image: '/images/phone-bar-porcelain.jpg',
-    basePriceAed: 1790,
+    basePriceAed: 1850,
     storageOptions: [
       { capacity: '128 GB', priceDeltaAed: 0 },
       { capacity: '256 GB', priceDeltaAed: 200 },
@@ -384,7 +378,7 @@ export const PHONE_MODELS: PhoneModel[] = [
     series: 'Pixel 8 Series',
     releaseYear: 2023,
     image: '/images/phone-bar-porcelain.jpg',
-    basePriceAed: 1350,
+    basePriceAed: 1450,
     storageOptions: [
       { capacity: '128 GB', priceDeltaAed: 0 },
       { capacity: '256 GB', priceDeltaAed: 160 },
@@ -454,7 +448,7 @@ export const PHONE_MODELS: PhoneModel[] = [
     series: 'R Series',
     releaseYear: 2024,
     image: '/images/phone-circle-obsidian.jpg',
-    basePriceAed: 1380,
+    basePriceAed: 1480,
     storageOptions: [
       { capacity: '128 GB', priceDeltaAed: 0 },
       { capacity: '256 GB', priceDeltaAed: 170 },
@@ -473,7 +467,7 @@ export const PHONE_MODELS: PhoneModel[] = [
     series: 'Phone Series',
     releaseYear: 2023,
     image: '/images/phone-glyph-mono.jpg',
-    basePriceAed: 1520,
+    basePriceAed: 1580,
     popular: true,
     specBadge: 'Glyph Interface',
     storageOptions: [
@@ -493,7 +487,7 @@ export const PHONE_MODELS: PhoneModel[] = [
     series: 'Phone (a) Series',
     releaseYear: 2024,
     image: '/images/phone-glyph-mono.jpg',
-    basePriceAed: 1090,
+    basePriceAed: 1290,
     storageOptions: [{ capacity: '256 GB', priceDeltaAed: 0 }],
     colors: [
       { name: 'Metallic Grey', hex: '#8B8D91' },
@@ -507,7 +501,7 @@ export const PHONE_MODELS: PhoneModel[] = [
     series: 'Phone (a) Series',
     releaseYear: 2024,
     image: '/images/phone-glyph-mono.jpg',
-    basePriceAed: 890,
+    basePriceAed: 1150,
     storageOptions: [
       { capacity: '128 GB', priceDeltaAed: 0 },
       { capacity: '256 GB', priceDeltaAed: 130 },
@@ -545,7 +539,7 @@ export const PHONE_MODELS: PhoneModel[] = [
     series: 'Xiaomi Series',
     releaseYear: 2024,
     image: '/images/phone-ultra-slate.jpg',
-    basePriceAed: 1940,
+    basePriceAed: 1970,
     storageOptions: [
       { capacity: '256 GB', priceDeltaAed: 0 },
       { capacity: '512 GB', priceDeltaAed: 230 },
@@ -562,7 +556,7 @@ export const PHONE_MODELS: PhoneModel[] = [
     series: 'Xiaomi T Series',
     releaseYear: 2024,
     image: '/images/phone-ultra-slate.jpg',
-    basePriceAed: 1720,
+    basePriceAed: 1750,
     storageOptions: [
       { capacity: '256 GB', priceDeltaAed: 0 },
       { capacity: '512 GB', priceDeltaAed: 210 },
@@ -623,7 +617,7 @@ export const PHONE_MODELS: PhoneModel[] = [
     series: 'Reno Series',
     releaseYear: 2024,
     image: '/images/phone-ultra-slate.jpg',
-    basePriceAed: 1290,
+    basePriceAed: 1450,
     storageOptions: [
       { capacity: '256 GB', priceDeltaAed: 0 },
       { capacity: '512 GB', priceDeltaAed: 180 },
@@ -656,7 +650,7 @@ export const PHONE_MODELS: PhoneModel[] = [
     series: 'X Series',
     releaseYear: 2024,
     image: '/images/phone-circle-obsidian.jpg',
-    basePriceAed: 2120,
+    basePriceAed: 2200,
     storageOptions: [{ capacity: '512 GB', priceDeltaAed: 0 }],
     colors: [{ name: 'Asteroid Black', hex: '#252628' }],
   },
@@ -667,7 +661,7 @@ export const PHONE_MODELS: PhoneModel[] = [
     series: 'V Series',
     releaseYear: 2024,
     image: '/images/phone-ultra-slate.jpg',
-    basePriceAed: 1390,
+    basePriceAed: 1520,
     storageOptions: [
       { capacity: '256 GB', priceDeltaAed: 0 },
       { capacity: '512 GB', priceDeltaAed: 170 },
@@ -714,7 +708,7 @@ export const PHONE_MODELS: PhoneModel[] = [
     series: 'Edge Series',
     releaseYear: 2024,
     image: '/images/phone-ultra-slate.jpg',
-    basePriceAed: 1320,
+    basePriceAed: 1450,
     storageOptions: [{ capacity: '256 GB', priceDeltaAed: 0 }],
     colors: [{ name: 'Black Beauty', hex: '#232426' }],
   },
@@ -744,7 +738,7 @@ export const PHONE_MODELS: PhoneModel[] = [
     series: 'Flagship Series',
     releaseYear: 2023,
     image: '/images/phone-ultra-slate.jpg',
-    basePriceAed: 1680,
+    basePriceAed: 1750,
     storageOptions: [
       { capacity: '256 GB', priceDeltaAed: 0 },
       { capacity: '512 GB', priceDeltaAed: 200 },
@@ -760,7 +754,7 @@ export const PHONE_MODELS: PhoneModel[] = [
     series: 'GT Flagship',
     releaseYear: 2024,
     image: '/images/phone-ultra-slate.jpg',
-    basePriceAed: 1790,
+    basePriceAed: 1850,
     storageOptions: [
       { capacity: '256 GB', priceDeltaAed: 0 },
       { capacity: '512 GB', priceDeltaAed: 190 },
@@ -777,7 +771,7 @@ export const PHONE_MODELS: PhoneModel[] = [
     series: 'GT Flagship',
     releaseYear: 2024,
     image: '/images/phone-ultra-slate.jpg',
-    basePriceAed: 1340,
+    basePriceAed: 1450,
     storageOptions: [
       { capacity: '256 GB', priceDeltaAed: 0 },
       { capacity: '512 GB', priceDeltaAed: 170 },
@@ -793,7 +787,7 @@ export const PHONE_MODELS: PhoneModel[] = [
     series: 'F Series',
     releaseYear: 2024,
     image: '/images/phone-ultra-slate.jpg',
-    basePriceAed: 1440,
+    basePriceAed: 1520,
     storageOptions: [
       { capacity: '256 GB', priceDeltaAed: 0 },
       { capacity: '512 GB', priceDeltaAed: 200 },
@@ -810,7 +804,7 @@ export const PHONE_MODELS: PhoneModel[] = [
     series: 'X Series',
     releaseYear: 2024,
     image: '/images/phone-ultra-slate.jpg',
-    basePriceAed: 920,
+    basePriceAed: 1200,
     storageOptions: [
       { capacity: '256 GB', priceDeltaAed: 0 },
       { capacity: '512 GB', priceDeltaAed: 140 },
@@ -822,128 +816,114 @@ export const PHONE_MODELS: PhoneModel[] = [
   },
 ];
 
+/**
+ * Exact arsouq Reduction Schedule from Reference Pricing Table:
+ * - Zero Scratch (Flawless):           -AED 0
+ * - Small Scratch:                     -AED 150
+ * - Medium Scratch:                    -AED 400
+ * - Parts Change (Genuine Part):       -AED 500
+ * - More Scratch/Dent/Broken:          -AED 700
+ * - Hardware issue/Unknown parts:      -AED 1,000
+ * - Others:                            Reply by agent
+ */
 export const CONDITION_TIERS: ConditionTier[] = [
   {
-    id: 'flawless',
-    title: 'Flawless',
-    shortLabel: 'Like New',
-    summary: 'Zero visible scratches, original parts, and spotless frame.',
-    multiplier: 1.0,
+    id: 'zero-scratch',
+    title: 'Zero Scratch (Flawless)',
+    shortLabel: 'Flawless',
+    deductionAed: 0,
     indicatorHex: '#059669',
+    summary: 'Full Working · No Scratch on Body & Display · Battery Health 90% or Above',
     criteria: [
-      'Screen and rear glass have zero scratches under direct light',
-      'Chassis, corners, and camera rings are completely unmarked',
-      '100% original manufacturer parts with full hardware integrity',
+      'Screen: No scratches',
+      'Body: No dents or scratches',
+      'Battery Health 90% or above',
+      'Device & camera fully functional',
     ],
   },
   {
-    id: 'good',
-    title: 'Good',
-    shortLabel: 'Light Wear',
-    summary: 'Gently used daily device with faint hairline wear only.',
-    multiplier: 0.87,
+    id: 'small-scratch',
+    title: 'Small Scratch',
+    shortLabel: '-AED 150',
+    deductionAed: 150,
+    indicatorHex: '#2095D3',
+    summary:
+      'Full Working, Small Scratch on Body or Display, If even Both, Battery Health 85% or Above',
+    criteria: [
+      'Full working condition',
+      'Small scratch on body or display (even if both)',
+      'Battery Health 85% or above',
+    ],
+  },
+  {
+    id: 'medium-scratch',
+    title: 'Medium Scratch',
+    shortLabel: '-AED 400',
+    deductionAed: 400,
     indicatorHex: '#0284C7',
+    summary:
+      'Full Working, Small Scratch/Dent on Body, Display Small Scratch or deep, If even Both, Battery Health 85% or Above',
     criteria: [
-      'Faint micro-scratches invisible when display is illuminated',
-      'Minor pocket wear on frame edges, zero dents or cracks',
-      'All sensors, cameras, and wireless radios operate normally',
+      'Full working condition',
+      'Small scratch or dent on body',
+      'Display small or deep scratch (even if both)',
+      'Battery Health 85% or above',
     ],
   },
   {
-    id: 'fair',
-    title: 'Fair',
-    shortLabel: 'Visible Wear',
-    summary: 'Noticeable cosmetic scratches or small frame scuffs, fully intact glass.',
-    multiplier: 0.71,
+    id: 'parts-change-genuine',
+    title: 'Parts Change (Genuine Part)',
+    shortLabel: '-AED 500',
+    deductionAed: 500,
     indicatorHex: '#D97706',
+    summary:
+      'Full Working, No Scratch on Body & Display, Battery Health 85% or Above, Only one Genuine Official Part Changed',
     criteria: [
-      'Visible surface scratches on display or housing',
-      'Small corner nicks or anodized finish wear on edges',
-      'No cracked glass or structural bending on chassis',
+      'Full working, no scratch on body & display',
+      'Battery Health 85% or above',
+      'Only one genuine manufacturer part changed',
     ],
   },
   {
-    id: 'damaged',
-    title: 'Damaged',
-    shortLabel: 'Cracked / Worn',
-    summary: 'Cracked front or rear glass, display spots, or heavy frame impact.',
-    multiplier: 0.45,
+    id: 'more-scratch-broken',
+    title: 'More Scratch / Dent / Broken',
+    shortLabel: '-AED 700',
+    deductionAed: 700,
+    indicatorHex: '#EA580C',
+    summary:
+      'Issues like mic, speaker, camera black dot, Back Glass broken / Frame Dent, Display Crack (Network & core working)',
+    criteria: [
+      'Back glass broken, frame dent, or display crack',
+      'Minor mic, speaker, or camera black dot issue',
+      'Network, main display, and camera still working',
+    ],
+  },
+  {
+    id: 'hardware-unknown-parts',
+    title: 'Hardware Issue / Unknown Parts',
+    shortLabel: '-AED 1,000',
+    deductionAed: 1000,
     indicatorHex: '#DC2626',
+    summary:
+      'Face ID not working, Display not working due to display damage, or any parts changed from unofficials',
     criteria: [
-      'Cracked front screen, shattered rear glass, or OLED blemishes',
-      'Heavy corner dents or bent enclosure',
-      'Device still powers on and can be factory erased',
+      'Face ID / biometrics not working',
+      'Display not working due to display damage',
+      'Any parts changed from unofficial sources',
     ],
   },
-];
-
-export const KNOWN_ISSUES_CATALOG: {
-  id: KnownIssueId;
-  label: string;
-  description: string;
-  deductionAed: number;
-}[] = [
   {
-    id: 'camera-lens',
-    label: 'Camera Focus or Lens Mark',
-    description: 'Blur, dust spot, or scratched camera sapphire glass',
-    deductionAed: 220,
-  },
-  {
-    id: 'biometrics',
-    label: 'Face ID / Fingerprint Issue',
-    description: 'Biometric authentication fails or is disabled',
-    deductionAed: 340,
-  },
-  {
-    id: 'audio-mic',
-    label: 'Speaker or Microphone Crackling',
-    description: 'Low ear-speaker volume or muffled voice recording',
-    deductionAed: 140,
-  },
-  {
-    id: 'charging-port',
-    label: 'Charging Port Loose',
-    description: 'Cable requires angling or wireless-only charging',
-    deductionAed: 130,
-  },
-  {
-    id: 'buttons-haptics',
-    label: 'Side Buttons or Haptics Sticky',
-    description: 'Volume, power, or action switch lacks crisp click',
-    deductionAed: 110,
-  },
-  {
-    id: 'network-locked',
-    label: 'Carrier / Region SIM Locked',
-    description: 'Locked to a non-UAE carrier network',
-    deductionAed: 260,
-  },
-];
-
-export const ACCESSORY_BONUSES: {
-  id: AccessoryBonusId;
-  label: string;
-  description: string;
-  bonusAed: number;
-}[] = [
-  {
-    id: 'original-box',
-    label: 'Original Retail Box',
-    description: 'Matching IMEI box in clean condition',
-    bonusAed: 50,
-  },
-  {
-    id: 'original-cable',
-    label: 'Original Charging Cable',
-    description: 'Genuine manufacturer USB-C / braided cable',
-    bonusAed: 30,
-  },
-  {
-    id: 'uae-warranty',
-    label: 'Active UAE Warranty',
-    description: '3+ months remaining official manufacturer coverage',
-    bonusAed: 90,
+    id: 'others-agent',
+    title: 'Others',
+    shortLabel: 'Reply by agent',
+    deductionAed: null,
+    indicatorHex: '#52525B',
+    summary:
+      'If you have a device or issue not in the selection, detail it to our agent so our agent will give you the best price.',
+    criteria: [
+      'Unlisted device condition or multiple custom repairs',
+      'Detail your phone directly for a custom agent offer',
+    ],
   },
 ];
 

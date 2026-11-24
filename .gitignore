@@ -25,4 +25,5 @@ dist-ssr
 
 # Agents / Skills
 .agents
+.taste-skill
 skills-lock.json

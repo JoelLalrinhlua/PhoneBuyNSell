@@ -45,40 +45,54 @@ export interface PhoneModel {
   specBadge?: string;
 }
 
-export type ConditionId = 'flawless' | 'good' | 'fair' | 'damaged';
+export type ConditionId =
+  | 'zero-scratch'
+  | 'small-scratch'
+  | 'medium-scratch'
+  | 'parts-change-genuine'
+  | 'more-scratch-broken'
+  | 'hardware-unknown-parts'
+  | 'others-agent';
 
 export interface ConditionTier {
   id: ConditionId;
   title: string;
   shortLabel: string;
+  deductionAed: number | null; // null = Reply by agent
   summary: string;
-  multiplier: number;
   criteria: string[];
   indicatorHex: string;
 }
 
-export type BatteryHealthTier = '90-100' | '80-89' | 'below-80';
-export type ScreenStatus = 'pristine' | 'micro-scratches' | 'visible-wear' | 'cracked';
-export type BodyStatus = 'spotless' | 'light-scuffs' | 'dents-cracks';
-export type FunctionalStatus = 'fully-working' | 'minor-issue';
+export type BatteryHealthTier = '90-above' | '85-89' | 'below-85';
 
-export type KnownIssueId =
-  | 'camera-lens'
-  | 'biometrics'
-  | 'audio-mic'
-  | 'charging-port'
-  | 'buttons-haptics'
-  | 'network-locked';
+export type ScreenStatus =
+  | 'no-scratch'
+  | 'small-scratch'
+  | 'medium-deep-scratch'
+  | 'display-crack'
+  | 'display-not-working';
 
-export type AccessoryBonusId = 'original-box' | 'original-cable' | 'uae-warranty';
+export type BodyPartsStatus =
+  | 'no-scratch-original'
+  | 'small-body-scratch'
+  | 'body-dent-scratch'
+  | 'genuine-part-changed'
+  | 'back-glass-broken-dent'
+  | 'unknown-unofficial-part';
+
+export type FunctionalStatus =
+  | 'full-working'
+  | 'mic-speaker-camera-dot'
+  | 'faceid-hardware-issue'
+  | 'other-agent-issue';
 
 export interface DeviceEvaluation {
   batteryHealth: BatteryHealthTier;
   screenStatus: ScreenStatus;
-  bodyStatus: BodyStatus;
+  bodyPartsStatus: BodyPartsStatus;
   functionalStatus: FunctionalStatus;
-  knownIssues: KnownIssueId[];
-  accessories: AccessoryBonusId[];
+  agentIssueDetails: string;
 }
 
 export interface ValuationLineItem {
@@ -86,16 +100,17 @@ export interface ValuationLineItem {
   label: string;
   detail?: string;
   amountAed: number;
-  kind: 'base' | 'addition' | 'deduction';
+  kind: 'base' | 'deduction';
 }
 
 export interface ValuationBreakdown {
   currency: 'AED';
+  isAgentQuote: boolean;
+  appliedTierId: ConditionId;
+  appliedTierTitle: string;
   maxPossibleAed: number;
   storageBaseAed: number;
-  conditionAdjustedAed: number;
-  diagnosticsDeltaAed: number;
-  accessoriesBonusAed: number;
+  deductionAed: number;
   finalEstimateAed: number;
   priceLockDays: number;
   lineItems: ValuationLineItem[];
@@ -131,12 +146,12 @@ export interface SellerContactDetails {
 export interface SellSubmissionRecord {
   referenceCode: string;
   createdAtIso: string;
-  status: 'pending_pickup' | 'inspecting' | 'completed';
-  brandId: BrandId;
+  status: 'pending_pickup' | 'agent_quote_pending' | 'inspecting' | 'completed';
+  brandId: BrandId | 'other';
   brandName: string;
   modelId: string;
   modelName: string;
-  storage: StorageCapacity;
+  storage: StorageCapacity | 'Custom';
   colorName: string;
   conditionId: ConditionId;
   conditionTitle: string;
