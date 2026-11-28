@@ -43,7 +43,7 @@ export const DashboardPage: React.FC = () => {
     >
       <div className="mx-auto max-w-2xl px-4 sm:px-6">
         {/* Compact Top Bar */}
-        <div className="mb-3.5 flex items-center justify-between gap-3">
+        <div className="hero-enter-1 mb-3.5 flex items-center justify-between gap-3">
           <button
             type="button"
             onClick={handleBack}
@@ -59,7 +59,7 @@ export const DashboardPage: React.FC = () => {
         </div>
 
         {/* Profile Identity Card */}
-        <section className="overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white shadow-[0_8px_28px_rgba(15,23,42,0.04)] sm:rounded-3xl">
+        <section className="hero-enter-2 overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white shadow-[0_8px_28px_rgba(15,23,42,0.04)] sm:rounded-3xl">
           <div className="bg-[#0B1120] p-4.5 text-white sm:p-6">
             <div className="flex items-center gap-3.5 sm:gap-4">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#2095D3] font-['Plus_Jakarta_Sans'] text-base font-extrabold text-white shadow-[0_6px_18px_rgba(32,149,211,0.35)] sm:h-14 sm:w-14 sm:text-lg">

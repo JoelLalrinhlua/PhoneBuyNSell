@@ -1,28 +1,16 @@
 import type {
   B2BAccountProfile,
   Brand,
+  BrandId,
   ConditionTier,
   InspectionVideoConfig,
   PhoneModel,
 } from '../types/buyback';
 
-export const BRANDS: Brand[] = [
-  { id: 'apple', name: 'Apple', maxPayoutAed: 4450, deviceCount: 8 },
-  { id: 'samsung', name: 'Samsung', maxPayoutAed: 4380, deviceCount: 7 },
-  { id: 'google', name: 'Google', maxPayoutAed: 3240, deviceCount: 4 },
-  { id: 'oneplus', name: 'OnePlus', maxPayoutAed: 2790, deviceCount: 4 },
-  { id: 'xiaomi', name: 'Xiaomi', maxPayoutAed: 3150, deviceCount: 4 },
-  { id: 'nothing', name: 'Nothing', maxPayoutAed: 1820, deviceCount: 3 },
-  { id: 'oppo', name: 'OPPO', maxPayoutAed: 2890, deviceCount: 3 },
-  { id: 'vivo', name: 'vivo', maxPayoutAed: 2940, deviceCount: 3 },
-  { id: 'motorola', name: 'Motorola', maxPayoutAed: 2460, deviceCount: 3 },
-  { id: 'iqoo', name: 'iQOO', maxPayoutAed: 2320, deviceCount: 2 },
-  { id: 'realme', name: 'realme', maxPayoutAed: 1980, deviceCount: 2 },
-  { id: 'poco', name: 'POCO', maxPayoutAed: 1640, deviceCount: 2 },
-];
-
 export const PHONE_MODELS: PhoneModel[] = [
+  // =========================================================================
   // APPLE
+  // =========================================================================
   {
     id: 'iphone-16-pro-max',
     brandId: 'apple',
@@ -32,7 +20,7 @@ export const PHONE_MODELS: PhoneModel[] = [
     image: '/images/phone-pro-titanium.jpg',
     basePriceAed: 3650,
     popular: true,
-    specBadge: 'Titanium Pro',
+    specBadge: '6.9" OLED · A18 Pro',
     storageOptions: [
       { capacity: '256 GB', priceDeltaAed: 0 },
       { capacity: '512 GB', priceDeltaAed: 380 },
@@ -54,7 +42,7 @@ export const PHONE_MODELS: PhoneModel[] = [
     image: '/images/phone-pro-titanium.jpg',
     basePriceAed: 3120,
     popular: true,
-    specBadge: 'Pro 6.3"',
+    specBadge: '6.3" OLED · A18 Pro',
     storageOptions: [
       { capacity: '128 GB', priceDeltaAed: 0 },
       { capacity: '256 GB', priceDeltaAed: 250 },
@@ -62,10 +50,32 @@ export const PHONE_MODELS: PhoneModel[] = [
       { capacity: '1 TB', priceDeltaAed: 980 },
     ],
     colors: [
-      { name: 'Natural Titanium', hex: '#A5A29B' },
       { name: 'Desert Titanium', hex: '#C4B39B' },
+      { name: 'Natural Titanium', hex: '#A5A29B' },
       { name: 'White Titanium', hex: '#F1F0EC' },
       { name: 'Black Titanium', hex: '#2B2B2D' },
+    ],
+  },
+  {
+    id: 'iphone-16-plus',
+    brandId: 'apple',
+    name: 'iPhone 16 Plus',
+    series: 'iPhone 16 Series',
+    releaseYear: 2024,
+    image: '/images/phone-pro-titanium.jpg',
+    basePriceAed: 2690,
+    specBadge: '6.7" OLED · A18',
+    storageOptions: [
+      { capacity: '128 GB', priceDeltaAed: 0 },
+      { capacity: '256 GB', priceDeltaAed: 250 },
+      { capacity: '512 GB', priceDeltaAed: 560 },
+    ],
+    colors: [
+      { name: 'Ultramarine', hex: '#6378C6' },
+      { name: 'Teal', hex: '#7FA9A6' },
+      { name: 'Pink', hex: '#EAB6C9' },
+      { name: 'White', hex: '#F5F5F7' },
+      { name: 'Black', hex: '#262729' },
     ],
   },
   {
@@ -76,6 +86,7 @@ export const PHONE_MODELS: PhoneModel[] = [
     releaseYear: 2024,
     image: '/images/phone-pro-titanium.jpg',
     basePriceAed: 2390,
+    specBadge: '6.1" OLED · A18',
     storageOptions: [
       { capacity: '128 GB', priceDeltaAed: 0 },
       { capacity: '256 GB', priceDeltaAed: 240 },
@@ -83,6 +94,8 @@ export const PHONE_MODELS: PhoneModel[] = [
     ],
     colors: [
       { name: 'Ultramarine', hex: '#6378C6' },
+      { name: 'Teal', hex: '#7FA9A6' },
+      { name: 'Pink', hex: '#EAB6C9' },
       { name: 'White', hex: '#F5F5F7' },
       { name: 'Black', hex: '#262729' },
     ],
@@ -96,6 +109,7 @@ export const PHONE_MODELS: PhoneModel[] = [
     image: '/images/phone-pro-titanium.jpg',
     basePriceAed: 3050,
     popular: true,
+    specBadge: '6.7" OLED · A17 Pro',
     storageOptions: [
       { capacity: '256 GB', priceDeltaAed: 0 },
       { capacity: '512 GB', priceDeltaAed: 320 },
@@ -116,6 +130,7 @@ export const PHONE_MODELS: PhoneModel[] = [
     releaseYear: 2023,
     image: '/images/phone-pro-titanium.jpg',
     basePriceAed: 2540,
+    specBadge: '6.1" OLED · A17 Pro',
     storageOptions: [
       { capacity: '128 GB', priceDeltaAed: 0 },
       { capacity: '256 GB', priceDeltaAed: 230 },
@@ -124,6 +139,7 @@ export const PHONE_MODELS: PhoneModel[] = [
     ],
     colors: [
       { name: 'Natural Titanium', hex: '#A5A29B' },
+      { name: 'Blue Titanium', hex: '#3F4856' },
       { name: 'White Titanium', hex: '#F1F0EC' },
       { name: 'Black Titanium', hex: '#2B2B2D' },
     ],
@@ -136,6 +152,7 @@ export const PHONE_MODELS: PhoneModel[] = [
     releaseYear: 2023,
     image: '/images/phone-pro-titanium.jpg',
     basePriceAed: 1990,
+    specBadge: '6.1" OLED · A16 Bionic',
     storageOptions: [
       { capacity: '128 GB', priceDeltaAed: 0 },
       { capacity: '256 GB', priceDeltaAed: 210 },
@@ -145,6 +162,8 @@ export const PHONE_MODELS: PhoneModel[] = [
       { name: 'Black', hex: '#2C2D30' },
       { name: 'Blue', hex: '#DCE4EB' },
       { name: 'Green', hex: '#DCE5D8' },
+      { name: 'Yellow', hex: '#F3EBC8' },
+      { name: 'Pink', hex: '#F2D9DF' },
     ],
   },
   {
@@ -155,6 +174,7 @@ export const PHONE_MODELS: PhoneModel[] = [
     releaseYear: 2022,
     image: '/images/phone-pro-titanium.jpg',
     basePriceAed: 2200,
+    specBadge: '6.7" OLED · A16 Bionic',
     storageOptions: [
       { capacity: '128 GB', priceDeltaAed: 0 },
       { capacity: '256 GB', priceDeltaAed: 200 },
@@ -162,6 +182,7 @@ export const PHONE_MODELS: PhoneModel[] = [
       { capacity: '1 TB', priceDeltaAed: 690 },
     ],
     colors: [
+      { name: 'Deep Purple', hex: '#594F63' },
       { name: 'Space Black', hex: '#302E2F' },
       { name: 'Silver', hex: '#EBECE7' },
       { name: 'Gold', hex: '#F4E8CE' },
@@ -175,19 +196,25 @@ export const PHONE_MODELS: PhoneModel[] = [
     releaseYear: 2021,
     image: '/images/phone-pro-titanium.jpg',
     basePriceAed: 1550,
+    specBadge: '6.1" ProMotion · A15',
     storageOptions: [
       { capacity: '128 GB', priceDeltaAed: 0 },
       { capacity: '256 GB', priceDeltaAed: 170 },
       { capacity: '512 GB', priceDeltaAed: 350 },
+      { capacity: '1 TB', priceDeltaAed: 540 },
     ],
     colors: [
-      { name: 'Graphite', hex: '#4B4A47' },
       { name: 'Sierra Blue', hex: '#9AB5C7' },
+      { name: 'Alpine Green', hex: '#505F4E' },
+      { name: 'Graphite', hex: '#4B4A47' },
+      { name: 'Gold', hex: '#F5E7CE' },
       { name: 'Silver', hex: '#F1F2ED' },
     ],
   },
 
+  // =========================================================================
   // SAMSUNG
+  // =========================================================================
   {
     id: 'galaxy-s24-ultra',
     brandId: 'samsung',
@@ -197,7 +224,7 @@ export const PHONE_MODELS: PhoneModel[] = [
     image: '/images/phone-ultra-slate.jpg',
     basePriceAed: 2990,
     popular: true,
-    specBadge: 'S-Pen Titanium',
+    specBadge: '6.8" AMOLED · SD 8 Gen 3',
     storageOptions: [
       { capacity: '256 GB', priceDeltaAed: 0 },
       { capacity: '512 GB', priceDeltaAed: 380 },
@@ -207,6 +234,7 @@ export const PHONE_MODELS: PhoneModel[] = [
       { name: 'Titanium Gray', hex: '#8F8B84' },
       { name: 'Titanium Black', hex: '#2B2B2D' },
       { name: 'Titanium Yellow', hex: '#EAE0C0' },
+      { name: 'Titanium Blue', hex: '#9DB4C8' },
     ],
   },
   {
@@ -218,7 +246,7 @@ export const PHONE_MODELS: PhoneModel[] = [
     image: '/images/phone-fold-platinum.jpg',
     basePriceAed: 3680,
     popular: true,
-    specBadge: 'Foldable 7.6"',
+    specBadge: '7.6" Foldable · SD 8 Gen 3',
     storageOptions: [
       { capacity: '256 GB', priceDeltaAed: 0 },
       { capacity: '512 GB', priceDeltaAed: 360 },
@@ -227,6 +255,7 @@ export const PHONE_MODELS: PhoneModel[] = [
     colors: [
       { name: 'Silver Shadow', hex: '#A4A7AC' },
       { name: 'Navy', hex: '#2B374B' },
+      { name: 'Pink', hex: '#EBD3D9' },
       { name: 'Crafted Black', hex: '#232325' },
     ],
   },
@@ -238,6 +267,7 @@ export const PHONE_MODELS: PhoneModel[] = [
     releaseYear: 2024,
     image: '/images/phone-ultra-slate.jpg',
     basePriceAed: 2200,
+    specBadge: '6.7" QHD+ · 12 GB RAM',
     storageOptions: [
       { capacity: '256 GB', priceDeltaAed: 0 },
       { capacity: '512 GB', priceDeltaAed: 280 },
@@ -245,6 +275,7 @@ export const PHONE_MODELS: PhoneModel[] = [
     colors: [
       { name: 'Onyx Black', hex: '#2D2E30' },
       { name: 'Marble Gray', hex: '#C6C6C8' },
+      { name: 'Amber Yellow', hex: '#EEE3BF' },
     ],
   },
   {
@@ -255,13 +286,16 @@ export const PHONE_MODELS: PhoneModel[] = [
     releaseYear: 2024,
     image: '/images/phone-fold-platinum.jpg',
     basePriceAed: 2150,
+    specBadge: '6.7" Flip · SD 8 Gen 3',
     storageOptions: [
       { capacity: '256 GB', priceDeltaAed: 0 },
       { capacity: '512 GB', priceDeltaAed: 260 },
     ],
     colors: [
       { name: 'Silver Shadow', hex: '#A4A7AC' },
+      { name: 'Blue', hex: '#B9D1E8' },
       { name: 'Mint', hex: '#C6DFD3' },
+      { name: 'Yellow', hex: '#F1E3AC' },
     ],
   },
   {
@@ -272,6 +306,7 @@ export const PHONE_MODELS: PhoneModel[] = [
     releaseYear: 2023,
     image: '/images/phone-ultra-slate.jpg',
     basePriceAed: 2200,
+    specBadge: '6.8" AMOLED · 200 MP',
     storageOptions: [
       { capacity: '256 GB', priceDeltaAed: 0 },
       { capacity: '512 GB', priceDeltaAed: 260 },
@@ -279,8 +314,8 @@ export const PHONE_MODELS: PhoneModel[] = [
     ],
     colors: [
       { name: 'Phantom Black', hex: '#232325' },
-      { name: 'Cream', hex: '#EFECE4' },
       { name: 'Green', hex: '#546158' },
+      { name: 'Cream', hex: '#EFECE4' },
     ],
   },
   {
@@ -291,13 +326,16 @@ export const PHONE_MODELS: PhoneModel[] = [
     releaseYear: 2023,
     image: '/images/phone-fold-platinum.jpg',
     basePriceAed: 2690,
+    specBadge: '7.6" Foldable · SD 8 Gen 2',
     storageOptions: [
       { capacity: '256 GB', priceDeltaAed: 0 },
       { capacity: '512 GB', priceDeltaAed: 290 },
+      { capacity: '1 TB', priceDeltaAed: 560 },
     ],
     colors: [
       { name: 'Icy Blue', hex: '#B9C7D3' },
       { name: 'Phantom Black', hex: '#232325' },
+      { name: 'Cream', hex: '#EFECE4' },
     ],
   },
   {
@@ -308,6 +346,7 @@ export const PHONE_MODELS: PhoneModel[] = [
     releaseYear: 2023,
     image: '/images/phone-ultra-slate.jpg',
     basePriceAed: 1550,
+    specBadge: '6.1" AMOLED · SD 8 Gen 2',
     storageOptions: [
       { capacity: '128 GB', priceDeltaAed: 0 },
       { capacity: '256 GB', priceDeltaAed: 180 },
@@ -315,10 +354,13 @@ export const PHONE_MODELS: PhoneModel[] = [
     colors: [
       { name: 'Phantom Black', hex: '#232325' },
       { name: 'Cream', hex: '#EFECE4' },
+      { name: 'Green', hex: '#546158' },
     ],
   },
 
+  // =========================================================================
   // GOOGLE
+  // =========================================================================
   {
     id: 'pixel-9-pro-xl',
     brandId: 'google',
@@ -328,15 +370,17 @@ export const PHONE_MODELS: PhoneModel[] = [
     image: '/images/phone-bar-porcelain.jpg',
     basePriceAed: 2680,
     popular: true,
-    specBadge: 'Tensor G4',
+    specBadge: '6.8" Super Actua · Tensor G4',
     storageOptions: [
       { capacity: '128 GB', priceDeltaAed: 0 },
       { capacity: '256 GB', priceDeltaAed: 240 },
       { capacity: '512 GB', priceDeltaAed: 560 },
+      { capacity: '1 TB', priceDeltaAed: 820 },
     ],
     colors: [
       { name: 'Porcelain', hex: '#EFECE6' },
       { name: 'Hazel', hex: '#888D86' },
+      { name: 'Rose Quartz', hex: '#E9D3D6' },
       { name: 'Obsidian', hex: '#242527' },
     ],
   },
@@ -348,13 +392,17 @@ export const PHONE_MODELS: PhoneModel[] = [
     releaseYear: 2024,
     image: '/images/phone-bar-porcelain.jpg',
     basePriceAed: 2390,
+    specBadge: '6.3" Super Actua · Tensor G4',
     storageOptions: [
       { capacity: '128 GB', priceDeltaAed: 0 },
       { capacity: '256 GB', priceDeltaAed: 220 },
       { capacity: '512 GB', priceDeltaAed: 490 },
+      { capacity: '1 TB', priceDeltaAed: 760 },
     ],
     colors: [
       { name: 'Porcelain', hex: '#EFECE6' },
+      { name: 'Hazel', hex: '#888D86' },
+      { name: 'Rose Quartz', hex: '#E9D3D6' },
       { name: 'Obsidian', hex: '#242527' },
     ],
   },
@@ -366,14 +414,17 @@ export const PHONE_MODELS: PhoneModel[] = [
     releaseYear: 2023,
     image: '/images/phone-bar-porcelain.jpg',
     basePriceAed: 1850,
+    specBadge: '6.7" LTPO OLED · Tensor G3',
     storageOptions: [
       { capacity: '128 GB', priceDeltaAed: 0 },
       { capacity: '256 GB', priceDeltaAed: 200 },
       { capacity: '512 GB', priceDeltaAed: 420 },
+      { capacity: '1 TB', priceDeltaAed: 640 },
     ],
     colors: [
-      { name: 'Porcelain', hex: '#EFECE6' },
       { name: 'Bay', hex: '#8AB4D8' },
+      { name: 'Porcelain', hex: '#EFECE6' },
+      { name: 'Mint', hex: '#CEE5D8' },
       { name: 'Obsidian', hex: '#242527' },
     ],
   },
@@ -385,27 +436,31 @@ export const PHONE_MODELS: PhoneModel[] = [
     releaseYear: 2023,
     image: '/images/phone-bar-porcelain.jpg',
     basePriceAed: 1450,
+    specBadge: '6.2" Actua OLED · Tensor G3',
     storageOptions: [
       { capacity: '128 GB', priceDeltaAed: 0 },
       { capacity: '256 GB', priceDeltaAed: 160 },
     ],
     colors: [
       { name: 'Hazel', hex: '#7D827B' },
+      { name: 'Rose', hex: '#E7C8C5' },
       { name: 'Obsidian', hex: '#242527' },
     ],
   },
 
+  // =========================================================================
   // ONEPLUS
+  // =========================================================================
   {
     id: 'oneplus-13',
     brandId: 'oneplus',
     name: 'OnePlus 13',
     series: 'Flagship Number Series',
-    releaseYear: 2024,
+    releaseYear: 2025,
     image: '/images/phone-circle-obsidian.jpg',
     basePriceAed: 2480,
     popular: true,
-    specBadge: 'Hasselblad Optics',
+    specBadge: '6.82" LTPO · SD 8 Elite',
     storageOptions: [
       { capacity: '256 GB', priceDeltaAed: 0 },
       { capacity: '512 GB', priceDeltaAed: 310 },
@@ -424,10 +479,15 @@ export const PHONE_MODELS: PhoneModel[] = [
     releaseYear: 2023,
     image: '/images/phone-fold-platinum.jpg',
     basePriceAed: 2690,
-    storageOptions: [{ capacity: '512 GB', priceDeltaAed: 0 }],
+    specBadge: '7.82" Foldable · Hasselblad',
+    storageOptions: [
+      { capacity: '512 GB', priceDeltaAed: 0 },
+      { capacity: '1 TB', priceDeltaAed: 340 },
+    ],
     colors: [
-      { name: 'Voyager Black', hex: '#262628' },
       { name: 'Emerald Dusk', hex: '#2E493E' },
+      { name: 'Voyager Black', hex: '#262628' },
+      { name: 'Crimson Shadow', hex: '#6D2428' },
     ],
   },
   {
@@ -438,13 +498,15 @@ export const PHONE_MODELS: PhoneModel[] = [
     releaseYear: 2024,
     image: '/images/phone-circle-obsidian.jpg',
     basePriceAed: 1960,
+    specBadge: '6.82" QHD+ · SD 8 Gen 3',
     storageOptions: [
       { capacity: '256 GB', priceDeltaAed: 0 },
       { capacity: '512 GB', priceDeltaAed: 240 },
     ],
     colors: [
-      { name: 'Silky Black', hex: '#232426' },
       { name: 'Flowy Emerald', hex: '#39574B' },
+      { name: 'Silky Black', hex: '#232426' },
+      { name: 'Glacial White', hex: '#F4F5F7' },
     ],
   },
   {
@@ -455,6 +517,7 @@ export const PHONE_MODELS: PhoneModel[] = [
     releaseYear: 2024,
     image: '/images/phone-circle-obsidian.jpg',
     basePriceAed: 1480,
+    specBadge: '6.78" 120Hz · SD 8 Gen 2',
     storageOptions: [
       { capacity: '128 GB', priceDeltaAed: 0 },
       { capacity: '256 GB', priceDeltaAed: 170 },
@@ -462,10 +525,13 @@ export const PHONE_MODELS: PhoneModel[] = [
     colors: [
       { name: 'Iron Gray', hex: '#525458' },
       { name: 'Cool Blue', hex: '#7FA5C9' },
+      { name: 'Sunset Dune', hex: '#DFC7B2' },
     ],
   },
 
+  // =========================================================================
   // NOTHING
+  // =========================================================================
   {
     id: 'nothing-phone-2',
     brandId: 'nothing',
@@ -475,7 +541,7 @@ export const PHONE_MODELS: PhoneModel[] = [
     image: '/images/phone-glyph-mono.jpg',
     basePriceAed: 1580,
     popular: true,
-    specBadge: 'Glyph Interface',
+    specBadge: '6.7" LTPO · Glyph Interface',
     storageOptions: [
       { capacity: '128 GB', priceDeltaAed: 0 },
       { capacity: '256 GB', priceDeltaAed: 160 },
@@ -494,9 +560,10 @@ export const PHONE_MODELS: PhoneModel[] = [
     releaseYear: 2024,
     image: '/images/phone-glyph-mono.jpg',
     basePriceAed: 1290,
+    specBadge: '6.7" AMOLED · Dimensity 7350',
     storageOptions: [{ capacity: '256 GB', priceDeltaAed: 0 }],
     colors: [
-      { name: 'Metallic Grey', hex: '#8B8D91' },
+      { name: 'Grey', hex: '#8B8D91' },
       { name: 'Black', hex: '#222325' },
     ],
   },
@@ -508,17 +575,21 @@ export const PHONE_MODELS: PhoneModel[] = [
     releaseYear: 2024,
     image: '/images/phone-glyph-mono.jpg',
     basePriceAed: 1150,
+    specBadge: '6.7" AMOLED · Dimensity 7200',
     storageOptions: [
       { capacity: '128 GB', priceDeltaAed: 0 },
       { capacity: '256 GB', priceDeltaAed: 130 },
     ],
     colors: [
       { name: 'Milk', hex: '#F2F1EC' },
+      { name: 'White', hex: '#F7F7F5' },
       { name: 'Black', hex: '#222325' },
     ],
   },
 
+  // =========================================================================
   // XIAOMI
+  // =========================================================================
   {
     id: 'xiaomi-14-ultra',
     brandId: 'xiaomi',
@@ -528,7 +599,7 @@ export const PHONE_MODELS: PhoneModel[] = [
     image: '/images/phone-circle-obsidian.jpg',
     basePriceAed: 2850,
     popular: true,
-    specBadge: '1" Optical Sensor',
+    specBadge: '6.73" QHD+ · Leica 1" Sensor',
     storageOptions: [
       { capacity: '512 GB', priceDeltaAed: 0 },
       { capacity: '1 TB', priceDeltaAed: 300 },
@@ -546,12 +617,14 @@ export const PHONE_MODELS: PhoneModel[] = [
     releaseYear: 2024,
     image: '/images/phone-ultra-slate.jpg',
     basePriceAed: 1970,
+    specBadge: '6.36" LTPO · Leica Optics',
     storageOptions: [
       { capacity: '256 GB', priceDeltaAed: 0 },
       { capacity: '512 GB', priceDeltaAed: 230 },
     ],
     colors: [
       { name: 'Black', hex: '#242527' },
+      { name: 'White', hex: '#F4F4F2' },
       { name: 'Jade Green', hex: '#3D5D53' },
     ],
   },
@@ -563,12 +636,15 @@ export const PHONE_MODELS: PhoneModel[] = [
     releaseYear: 2024,
     image: '/images/phone-ultra-slate.jpg',
     basePriceAed: 1750,
+    specBadge: '6.67" 144Hz · Dimensity 9300+',
     storageOptions: [
       { capacity: '256 GB', priceDeltaAed: 0 },
       { capacity: '512 GB', priceDeltaAed: 210 },
+      { capacity: '1 TB', priceDeltaAed: 390 },
     ],
     colors: [
       { name: 'Titan Gray', hex: '#77797E' },
+      { name: 'Titan Blue', hex: '#5D748A' },
       { name: 'Titan Black', hex: '#262729' },
     ],
   },
@@ -580,11 +656,17 @@ export const PHONE_MODELS: PhoneModel[] = [
     releaseYear: 2024,
     image: '/images/phone-fold-platinum.jpg',
     basePriceAed: 2380,
+    specBadge: '6.86" Flip · Leica Summilux',
     storageOptions: [{ capacity: '512 GB', priceDeltaAed: 0 }],
-    colors: [{ name: 'Black', hex: '#242426' }],
+    colors: [
+      { name: 'Black', hex: '#242426' },
+      { name: 'White', hex: '#F3F3F1' },
+    ],
   },
 
+  // =========================================================================
   // OPPO
+  // =========================================================================
   {
     id: 'oppo-find-x8-pro',
     brandId: 'oppo',
@@ -593,6 +675,7 @@ export const PHONE_MODELS: PhoneModel[] = [
     releaseYear: 2024,
     image: '/images/phone-circle-obsidian.jpg',
     basePriceAed: 2650,
+    specBadge: '6.78" LTPO · Hasselblad Quad',
     storageOptions: [
       { capacity: '256 GB', priceDeltaAed: 0 },
       { capacity: '512 GB', priceDeltaAed: 240 },
@@ -610,6 +693,7 @@ export const PHONE_MODELS: PhoneModel[] = [
     releaseYear: 2023,
     image: '/images/phone-fold-platinum.jpg',
     basePriceAed: 2790,
+    specBadge: '7.82" Foldable · 16 GB RAM',
     storageOptions: [{ capacity: '512 GB', priceDeltaAed: 0 }],
     colors: [
       { name: 'Classic Black', hex: '#242426' },
@@ -619,19 +703,25 @@ export const PHONE_MODELS: PhoneModel[] = [
   {
     id: 'oppo-reno12-pro',
     brandId: 'oppo',
-    name: 'OPPO Reno12 Pro',
+    name: 'OPPO Reno12 Pro 5G',
     series: 'Reno Series',
     releaseYear: 2024,
     image: '/images/phone-ultra-slate.jpg',
     basePriceAed: 1450,
+    specBadge: '6.7" AMOLED · 50 MP Telephoto',
     storageOptions: [
       { capacity: '256 GB', priceDeltaAed: 0 },
       { capacity: '512 GB', priceDeltaAed: 180 },
     ],
-    colors: [{ name: 'Space Brown', hex: '#4A433F' }],
+    colors: [
+      { name: 'Nebula Silver', hex: '#C7CCD6' },
+      { name: 'Space Brown', hex: '#4A433F' },
+    ],
   },
 
+  // =========================================================================
   // VIVO
+  // =========================================================================
   {
     id: 'vivo-x200-pro',
     brandId: 'vivo',
@@ -640,6 +730,7 @@ export const PHONE_MODELS: PhoneModel[] = [
     releaseYear: 2024,
     image: '/images/phone-circle-obsidian.jpg',
     basePriceAed: 2690,
+    specBadge: '6.78" LTPO · ZEISS 200 MP APO',
     storageOptions: [
       { capacity: '256 GB', priceDeltaAed: 0 },
       { capacity: '512 GB', priceDeltaAed: 250 },
@@ -654,11 +745,18 @@ export const PHONE_MODELS: PhoneModel[] = [
     brandId: 'vivo',
     name: 'vivo X100 Pro',
     series: 'X Series',
-    releaseYear: 2024,
+    releaseYear: 2023,
     image: '/images/phone-circle-obsidian.jpg',
     basePriceAed: 2200,
-    storageOptions: [{ capacity: '512 GB', priceDeltaAed: 0 }],
-    colors: [{ name: 'Asteroid Black', hex: '#252628' }],
+    specBadge: '6.78" LTPO · ZEISS 1" Main',
+    storageOptions: [
+      { capacity: '256 GB', priceDeltaAed: 0 },
+      { capacity: '512 GB', priceDeltaAed: 220 },
+    ],
+    colors: [
+      { name: 'Asteroid Black', hex: '#252628' },
+      { name: 'Startrail Blue', hex: '#7DA2C4' },
+    ],
   },
   {
     id: 'vivo-v40-pro',
@@ -668,14 +766,20 @@ export const PHONE_MODELS: PhoneModel[] = [
     releaseYear: 2024,
     image: '/images/phone-ultra-slate.jpg',
     basePriceAed: 1520,
+    specBadge: '6.78" AMOLED · ZEISS Portrait',
     storageOptions: [
       { capacity: '256 GB', priceDeltaAed: 0 },
       { capacity: '512 GB', priceDeltaAed: 170 },
     ],
-    colors: [{ name: 'Titanium Grey', hex: '#9A9EA4' }],
+    colors: [
+      { name: 'Ganges Blue', hex: '#8FB2CE' },
+      { name: 'Titanium Grey', hex: '#9A9EA4' },
+    ],
   },
 
+  // =========================================================================
   // MOTOROLA
+  // =========================================================================
   {
     id: 'motorola-razr-50-ultra',
     brandId: 'motorola',
@@ -684,6 +788,7 @@ export const PHONE_MODELS: PhoneModel[] = [
     releaseYear: 2024,
     image: '/images/phone-fold-platinum.jpg',
     basePriceAed: 2240,
+    specBadge: '6.9" pOLED Flip · 4.0" Cover',
     storageOptions: [
       { capacity: '256 GB', priceDeltaAed: 0 },
       { capacity: '512 GB', priceDeltaAed: 220 },
@@ -691,6 +796,7 @@ export const PHONE_MODELS: PhoneModel[] = [
     colors: [
       { name: 'Midnight Blue', hex: '#273449' },
       { name: 'Spring Green', hex: '#55755E' },
+      { name: 'Peach Fuzz', hex: '#F3BEA2' },
     ],
   },
   {
@@ -701,10 +807,15 @@ export const PHONE_MODELS: PhoneModel[] = [
     releaseYear: 2024,
     image: '/images/phone-ultra-slate.jpg',
     basePriceAed: 1860,
-    storageOptions: [{ capacity: '512 GB', priceDeltaAed: 0 }],
+    specBadge: '6.7" 144Hz pOLED · 125W Turbo',
+    storageOptions: [
+      { capacity: '512 GB', priceDeltaAed: 0 },
+      { capacity: '1 TB', priceDeltaAed: 240 },
+    ],
     colors: [
       { name: 'Forest Grey', hex: '#4D5150' },
       { name: 'Nordic Wood', hex: '#CBB69C' },
+      { name: 'Peach Fuzz', hex: '#F3BEA2' },
     ],
   },
   {
@@ -715,11 +826,20 @@ export const PHONE_MODELS: PhoneModel[] = [
     releaseYear: 2024,
     image: '/images/phone-ultra-slate.jpg',
     basePriceAed: 1450,
-    storageOptions: [{ capacity: '256 GB', priceDeltaAed: 0 }],
-    colors: [{ name: 'Black Beauty', hex: '#232426' }],
+    specBadge: '6.7" 144Hz pOLED · Pantone',
+    storageOptions: [
+      { capacity: '256 GB', priceDeltaAed: 0 },
+      { capacity: '512 GB', priceDeltaAed: 160 },
+    ],
+    colors: [
+      { name: 'Black Beauty', hex: '#232426' },
+      { name: 'Moonlight Pearl', hex: '#EEECE8' },
+    ],
   },
 
+  // =========================================================================
   // IQOO
+  // =========================================================================
   {
     id: 'iqoo-13',
     brandId: 'iqoo',
@@ -728,13 +848,15 @@ export const PHONE_MODELS: PhoneModel[] = [
     releaseYear: 2024,
     image: '/images/phone-ultra-slate.jpg',
     basePriceAed: 2080,
+    specBadge: '6.82" 144Hz Q10 · SD 8 Elite',
     storageOptions: [
       { capacity: '256 GB', priceDeltaAed: 0 },
       { capacity: '512 GB', priceDeltaAed: 240 },
     ],
     colors: [
-      { name: 'Legend White', hex: '#F3F3F1' },
-      { name: 'Alpha Black', hex: '#242527' },
+      { name: 'Legend', hex: '#F3F3F1' },
+      { name: 'Nardo Grey', hex: '#7D8085' },
+      { name: 'Alpha', hex: '#242527' },
     ],
   },
   {
@@ -745,14 +867,20 @@ export const PHONE_MODELS: PhoneModel[] = [
     releaseYear: 2023,
     image: '/images/phone-ultra-slate.jpg',
     basePriceAed: 1750,
+    specBadge: '6.78" 144Hz LTPO · SD 8 Gen 3',
     storageOptions: [
       { capacity: '256 GB', priceDeltaAed: 0 },
       { capacity: '512 GB', priceDeltaAed: 200 },
     ],
-    colors: [{ name: 'Legend White', hex: '#F3F3F1' }],
+    colors: [
+      { name: 'Legend', hex: '#F3F3F1' },
+      { name: 'Alpha', hex: '#242527' },
+    ],
   },
 
+  // =========================================================================
   // REALME
+  // =========================================================================
   {
     id: 'realme-gt-7-pro',
     brandId: 'realme',
@@ -761,6 +889,7 @@ export const PHONE_MODELS: PhoneModel[] = [
     releaseYear: 2024,
     image: '/images/phone-ultra-slate.jpg',
     basePriceAed: 1850,
+    specBadge: '6.78" Eco² OLED · SD 8 Elite',
     storageOptions: [
       { capacity: '256 GB', priceDeltaAed: 0 },
       { capacity: '512 GB', priceDeltaAed: 190 },
@@ -778,14 +907,20 @@ export const PHONE_MODELS: PhoneModel[] = [
     releaseYear: 2024,
     image: '/images/phone-ultra-slate.jpg',
     basePriceAed: 1450,
+    specBadge: '6.78" 6000-nit · SD 8s Gen 3',
     storageOptions: [
       { capacity: '256 GB', priceDeltaAed: 0 },
       { capacity: '512 GB', priceDeltaAed: 170 },
     ],
-    colors: [{ name: 'Fluid Silver', hex: '#C8CCD0' }],
+    colors: [
+      { name: 'Fluid Silver', hex: '#C8CCD0' },
+      { name: 'Razor Green', hex: '#4B645A' },
+    ],
   },
 
+  // =========================================================================
   // POCO
+  // =========================================================================
   {
     id: 'poco-f6-pro',
     brandId: 'poco',
@@ -794,9 +929,11 @@ export const PHONE_MODELS: PhoneModel[] = [
     releaseYear: 2024,
     image: '/images/phone-ultra-slate.jpg',
     basePriceAed: 1520,
+    specBadge: '6.67" WQHD+ · SD 8 Gen 2',
     storageOptions: [
       { capacity: '256 GB', priceDeltaAed: 0 },
       { capacity: '512 GB', priceDeltaAed: 200 },
+      { capacity: '1 TB', priceDeltaAed: 360 },
     ],
     colors: [
       { name: 'Black', hex: '#232426' },
@@ -806,45 +943,81 @@ export const PHONE_MODELS: PhoneModel[] = [
   {
     id: 'poco-x6-pro',
     brandId: 'poco',
-    name: 'POCO X6 Pro',
+    name: 'POCO X6 Pro 5G',
     series: 'X Series',
     releaseYear: 2024,
     image: '/images/phone-ultra-slate.jpg',
     basePriceAed: 1200,
+    specBadge: '6.67" 120Hz · Dimensity 8300',
     storageOptions: [
       { capacity: '256 GB', priceDeltaAed: 0 },
       { capacity: '512 GB', priceDeltaAed: 140 },
     ],
     colors: [
-      { name: 'POCO Yellow', hex: '#EAB308' },
+      { name: 'Yellow', hex: '#EAB308' },
+      { name: 'Grey', hex: '#7D8086' },
       { name: 'Black', hex: '#232426' },
     ],
   },
 ];
 
+const BRAND_DIRECTORY: { id: BrandId; name: string }[] = [
+  { id: 'apple', name: 'Apple' },
+  { id: 'samsung', name: 'Samsung' },
+  { id: 'google', name: 'Google' },
+  { id: 'oneplus', name: 'OnePlus' },
+  { id: 'xiaomi', name: 'Xiaomi' },
+  { id: 'nothing', name: 'Nothing' },
+  { id: 'oppo', name: 'OPPO' },
+  { id: 'vivo', name: 'vivo' },
+  { id: 'motorola', name: 'Motorola' },
+  { id: 'iqoo', name: 'iQOO' },
+  { id: 'realme', name: 'realme' },
+  { id: 'poco', name: 'POCO' },
+];
+
 /**
- * Exact arsouq Reduction Schedule from Reference Pricing Table:
- * - Zero Scratch (Flawless):           -AED 0
+ * Dynamically derived brand catalog so maxPayoutAed and deviceCount
+ * are always 100% accurate against PHONE_MODELS.
+ */
+export const BRANDS: Brand[] = BRAND_DIRECTORY.map(({ id, name }) => {
+  const models = PHONE_MODELS.filter((m) => m.brandId === id);
+  const maxPayoutAed = models.reduce((highest, m) => {
+    const modelMax =
+      m.basePriceAed + Math.max(...m.storageOptions.map((s) => s.priceDeltaAed), 0);
+    return Math.max(highest, modelMax);
+  }, 0);
+  return {
+    id,
+    name,
+    maxPayoutAed,
+    deviceCount: models.length,
+  };
+});
+
+/**
+ * Exact arsouq Fixed AED Reduction Schedule:
+ * - Flawless (Zero Scratch):           -AED 0
  * - Small Scratch:                     -AED 150
  * - Medium Scratch:                    -AED 400
  * - Parts Change (Genuine Part):       -AED 500
- * - More Scratch/Dent/Broken:          -AED 700
- * - Hardware issue/Unknown parts:      -AED 1,000
+ * - More Scratch / Dent / Broken:      -AED 700
+ * - Hardware Issue / Unknown Parts:    -AED 1,000
  * - Others:                            Reply by agent
  */
 export const CONDITION_TIERS: ConditionTier[] = [
   {
     id: 'zero-scratch',
-    title: 'Flawless (Zero Scratch)',
+    title: 'Flawless',
     shortLabel: 'Flawless',
     deductionAed: 0,
+    badgeLabel: 'Zero Scratch · 90%+',
     indicatorHex: '#059669',
-    summary: 'No scratches on screen or body · 100% functional · Battery 90%+',
+    summary: 'Spotless screen & body · 100% working · Original parts',
     criteria: [
-      'Screen: No scratches',
-      'Body: No dents or scratches',
+      'Screen & frame: Zero scratches or marks',
       'Battery Health 90% or above',
-      'Device & camera fully functional',
+      '100% original parts & all sensors working',
     ],
   },
   {
@@ -852,12 +1025,13 @@ export const CONDITION_TIERS: ConditionTier[] = [
     title: 'Small Scratch',
     shortLabel: 'Small Scratch',
     deductionAed: 150,
+    badgeLabel: 'Battery 85%+',
     indicatorHex: '#2095D3',
-    summary: 'Light scratch on body or screen (or both) · Battery 85%+',
+    summary: 'Faint hairline scratch on screen or body · Fully working',
     criteria: [
-      'Full working condition',
-      'Small scratch on body or display (even if both)',
+      'Light surface scratch on body, screen, or both',
       'Battery Health 85% or above',
+      'No dents, cracks, or replaced parts',
     ],
   },
   {
@@ -865,64 +1039,68 @@ export const CONDITION_TIERS: ConditionTier[] = [
     title: 'Medium Scratch',
     shortLabel: 'Medium Scratch',
     deductionAed: 400,
+    badgeLabel: 'Battery 85%+',
     indicatorHex: '#0284C7',
-    summary: 'Small body dent or deeper screen scratch · Battery 85%+',
+    summary: 'Visible screen scratch or minor body nick · Fully working',
     criteria: [
-      'Full working condition',
-      'Small scratch or dent on body',
-      'Display small or deep scratch (even if both)',
+      'Noticeable scratch on display or small body nick',
       'Battery Health 85% or above',
+      'All cameras, biometrics, and audio working',
     ],
   },
   {
     id: 'parts-change-genuine',
-    title: 'Parts Change (Genuine Part)',
+    title: 'Genuine Part',
     shortLabel: 'Genuine Part',
     deductionAed: 500,
+    badgeLabel: '1 Official Part',
     indicatorHex: '#D97706',
-    summary: 'No scratches · 1 genuine official part replaced · Battery 85%+',
+    summary: 'No scratches · One official manufacturer part replaced · 85%+',
     criteria: [
-      'Full working, no scratch on body & display',
-      'Battery Health 85% or above',
-      'Only one genuine manufacturer part changed',
+      'Spotless body & display with 85%+ battery health',
+      'Single genuine manufacturer part replaced',
+      'All device functions verified working',
     ],
   },
   {
     id: 'more-scratch-broken',
-    title: 'More Scratch / Dent / Broken',
+    title: 'Cracked / Dent',
     shortLabel: 'Dent / Cracked',
     deductionAed: 700,
+    badgeLabel: 'Core Working',
     indicatorHex: '#EA580C',
-    summary: 'Cracked glass, frame dent, or minor mic, speaker, or camera dot',
+    summary: 'Cracked glass, frame dent, or minor speaker/mic/camera spot',
     criteria: [
-      'Back glass broken, frame dent, or display crack',
-      'Minor mic, speaker, or camera black dot issue',
-      'Network, main display, and camera still working',
+      'Cracked front/back glass or visible frame dent',
+      'Minor speaker, mic, or camera spot issue',
+      'Main touch display and cellular network working',
     ],
   },
   {
     id: 'hardware-unknown-parts',
-    title: 'Hardware Issue / Unknown Parts',
+    title: 'Hardware Issue',
     shortLabel: 'Hardware Issue',
     deductionAed: 1000,
+    badgeLabel: 'Major Fault',
     indicatorHex: '#DC2626',
-    summary: 'Face ID issue, damaged non-working display, or unofficial parts',
+    summary: 'Face ID fault, broken OLED display, or third-party repair',
     criteria: [
-      'Face ID / biometrics not working',
-      'Display not working due to display damage',
-      'Any parts changed from unofficial sources',
+      'Face ID / Touch ID biometrics not working',
+      'Damaged non-working display or dead pixels',
+      'Unofficial / unknown replacement parts installed',
     ],
   },
   {
     id: 'others-agent',
-    title: 'Others',
+    title: 'Other Condition',
     shortLabel: 'Agent Quote',
     deductionAed: null,
+    badgeLabel: 'Custom Review',
     indicatorHex: '#52525B',
-    summary: 'Unlisted condition or issue — describe for a custom agent offer',
+    summary: 'Multiple issues or unlisted fault — custom specialist offer',
     criteria: [
       'Unlisted device condition or multiple custom repairs',
-      'Detail your phone directly for a custom agent offer',
+      'Describe your phone for a tailored agent offer',
     ],
   },
 ];
@@ -939,39 +1117,34 @@ export const UAE_EMIRATES = [
 
 /**
  * Inspection guide video configuration.
- * When your video file is ready, place it in `public/videos/` and set `src`
- * below (e.g. `src: '/videos/phone-inspection.mp4'`).
+ * Drop your MP4 in `public/videos/` and set `src` (e.g. '/videos/phone-inspection.mp4').
  */
 export const INSPECTION_VIDEO_CONFIG: InspectionVideoConfig = {
   src: '',
   poster: '/images/editorial-handover.jpg',
   durationLabel: '0:45',
-  title: 'How to Inspect the Phone',
+  title: 'Phone inspection guide',
   subtitle:
-    'Watch this quick guide to verify screen glass, frame condition, battery health, and sensors before viewing your approximate offer.',
+    'Watch this quick 45-second check to confirm your selected condition before viewing your final AED evaluation.',
   checkpoints: [
     {
       step: '01',
-      title: 'Display & Frame Check',
-      detail: 'Tilt the screen and back glass under light to check for hairline scratches, dents, or cracks.',
+      title: 'Screen & Frame Under Light',
+      detail: 'Tilt the display and frame under bright light to check for hairline scratches, nicks, or glass cracks.',
     },
     {
       step: '02',
-      title: 'Battery Health Check',
-      detail: 'Check Settings > Battery Health (90%+ for Flawless, 85%+ for Small or Medium Scratch).',
+      title: 'Battery Health Percentage',
+      detail: 'Open Settings > Battery > Battery Health (90%+ for Flawless, 85%+ for Small or Medium Scratch).',
     },
     {
       step: '03',
-      title: 'Sensors & Genuine Parts',
-      detail: 'Confirm Face ID / Touch ID, cameras, audio, and official parts history are working.',
+      title: 'Biometrics & Parts History',
+      detail: 'Verify Face ID / Touch ID, cameras, audio, and Settings > General > About for genuine parts.',
     },
   ],
 };
 
-/**
- * Default signed-in B2B partner profile (pre-populated from account registration,
- * read-only during individual phone / batch sell submissions).
- */
 export const DEFAULT_B2B_ACCOUNT: B2BAccountProfile = {
   accountCode: 'B2B-DXB-4082',
   companyName: 'Al Noor Mobile Trading LLC',

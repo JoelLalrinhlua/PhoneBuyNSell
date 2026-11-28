@@ -14,6 +14,7 @@
   --arsouq-muted: #64748b;
   --arsouq-surface: #f6f8fb;
   --arsouq-border: #e2e8f0;
+  --ease-fluid: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 @layer base {
@@ -37,41 +38,46 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* Lightweight GPU-only hover & press interactions */
+/* Smooth GPU-accelerated hover, selection & press interactions */
 .card-lift {
   transition:
-    transform 220ms cubic-bezier(0.16, 1, 0.3, 1),
-    border-color 180ms ease,
-    box-shadow 220ms ease;
+    transform 300ms var(--ease-fluid),
+    border-color 240ms var(--ease-fluid),
+    background-color 240ms var(--ease-fluid),
+    box-shadow 300ms var(--ease-fluid);
+  will-change: transform;
 }
 
 .card-lift:hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 24px -10px rgba(15, 23, 42, 0.08);
+  box-shadow: 0 10px 26px -12px rgba(15, 23, 42, 0.09);
 }
 
 .card-lift:active {
-  transform: translateY(0) scale(0.99);
+  transform: translateY(0) scale(0.985);
+  transition-duration: 120ms;
 }
 
 .img-zoom {
-  transition: transform 360ms cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 420ms var(--ease-fluid);
 }
 
 .group:hover .img-zoom {
-  transform: scale(1.03);
+  transform: scale(1.035);
 }
 
 .btn-press {
   transition:
-    transform 160ms cubic-bezier(0.16, 1, 0.3, 1),
-    background-color 180ms ease,
-    border-color 180ms ease,
-    color 180ms ease;
+    transform 220ms var(--ease-fluid),
+    background-color 220ms var(--ease-fluid),
+    border-color 220ms var(--ease-fluid),
+    color 220ms var(--ease-fluid),
+    box-shadow 260ms var(--ease-fluid);
 }
 
 .btn-press:active {
-  transform: scale(0.98);
+  transform: scale(0.975);
+  transition-duration: 100ms;
 }
 
 /* Minimal Brand Nav Underline */
@@ -90,7 +96,7 @@
   background-color: #2095d3;
   transform: scaleX(0);
   transform-origin: right;
-  transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 280ms var(--ease-fluid);
 }
 
 .nav-link-underline:hover::after,
@@ -99,91 +105,154 @@
   transform-origin: left;
 }
 
-/* Clean One-Time Entrance & Step Transitions (Zero infinite idle loops) */
+/* Fluid Entrances, Staggered Cascades & Step Transitions */
 @keyframes fadeSlideUp {
   from {
     opacity: 0;
-    transform: translateY(14px);
+    transform: translate3d(0, 12px, 0);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes fadeInSoft {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
   }
 }
 
 @keyframes stepForward {
   from {
     opacity: 0;
-    transform: translateX(20px);
+    transform: translate3d(18px, 4px, 0);
   }
   to {
     opacity: 1;
-    transform: translateX(0);
+    transform: translate3d(0, 0, 0);
   }
 }
 
 @keyframes stepBackward {
   from {
     opacity: 0;
-    transform: translateX(-20px);
+    transform: translate3d(-18px, 4px, 0);
   }
   to {
     opacity: 1;
-    transform: translateX(0);
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes itemCascade {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 8px, 0) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes bottomDockEnter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 100%, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes sheetSlideUp {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 20px, 0) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
   }
 }
 
 @keyframes checkPop {
   0% {
-    transform: scale(0.6);
+    transform: scale(0.55);
+    opacity: 0;
   }
-  70% {
-    transform: scale(1.1);
+  65% {
+    transform: scale(1.12);
+    opacity: 1;
   }
   100% {
     transform: scale(1);
+    opacity: 1;
   }
 }
 
 .hero-enter-1 {
-  animation: fadeSlideUp 480ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: fadeSlideUp 520ms var(--ease-fluid) both;
 }
 
 .hero-enter-2 {
-  animation: fadeSlideUp 540ms cubic-bezier(0.16, 1, 0.3, 1) 80ms both;
+  animation: fadeSlideUp 580ms var(--ease-fluid) 70ms both;
 }
 
 .hero-enter-3 {
-  animation: fadeSlideUp 600ms cubic-bezier(0.16, 1, 0.3, 1) 150ms both;
+  animation: fadeSlideUp 640ms var(--ease-fluid) 140ms both;
 }
 
 .step-slide-forward {
-  animation: stepForward 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: stepForward 380ms var(--ease-fluid) both;
 }
 
 .step-slide-backward {
-  animation: stepBackward 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: stepBackward 380ms var(--ease-fluid) both;
+}
+
+.stagger-item {
+  animation: itemCascade 380ms var(--ease-fluid) both;
+  animation-delay: calc(var(--stagger, 0) * 26ms);
+}
+
+.bottom-dock-enter {
+  animation: bottomDockEnter 380ms var(--ease-fluid) both;
+}
+
+.backdrop-fade {
+  animation: fadeInSoft 220ms ease-out both;
+}
+
+.sheet-enter {
+  animation: sheetSlideUp 320ms var(--ease-fluid) both;
 }
 
 .check-pop {
-  animation: checkPop 200ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: checkPop 260ms var(--ease-fluid) both;
 }
 
+/* Note: fadeInSoft uses opacity only so fixed descendants remain viewport-bound */
 .route-enter {
-  animation: fadeSlideUp 240ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: fadeInSoft 280ms var(--ease-fluid) both;
 }
 
 .reveal-base {
   opacity: 0;
-  transform: translateY(14px);
+  transform: translate3d(0, 14px, 0);
   transition:
-    opacity 480ms cubic-bezier(0.16, 1, 0.3, 1),
-    transform 480ms cubic-bezier(0.16, 1, 0.3, 1);
+    opacity 520ms var(--ease-fluid),
+    transform 520ms var(--ease-fluid);
 }
 
 .reveal-visible {
   opacity: 1;
-  transform: translateY(0);
+  transform: translate3d(0, 0, 0);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -198,6 +267,10 @@
   .hero-enter-3,
   .step-slide-forward,
   .step-slide-backward,
+  .stagger-item,
+  .bottom-dock-enter,
+  .backdrop-fade,
+  .sheet-enter,
   .check-pop,
   .route-enter,
   .reveal-base {

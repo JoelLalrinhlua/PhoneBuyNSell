@@ -59,6 +59,7 @@ export interface ConditionTier {
   title: string;
   shortLabel: string;
   deductionAed: number | null; // null = Reply by agent
+  badgeLabel?: string;
   summary: string;
   criteria: string[];
   indicatorHex: string;

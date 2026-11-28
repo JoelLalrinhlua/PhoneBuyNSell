@@ -4,7 +4,7 @@ import {
   ArrowRight,
   BadgeCheck,
   CheckCircle2,
-  HardDrive,
+  PlayCircle,
   ShieldCheck,
   SlidersHorizontal,
   Smartphone,
@@ -31,26 +31,26 @@ const SELLING_STEPS = [
   {
     num: '01',
     icon: Smartphone,
-    title: 'Brand & Model',
-    desc: 'Pick your phone brand and exact model in seconds.',
+    title: 'Brand, Model & Storage',
+    desc: 'Select your manufacturer, exact phone model, and storage capacity.',
   },
   {
     num: '02',
-    icon: HardDrive,
-    title: 'Select Storage',
-    desc: 'Choose your phone capacity from 128 GB up to 1 TB.',
+    icon: SlidersHorizontal,
+    title: 'Match Condition',
+    desc: 'Pick Flawless or see transparent fixed AED adjustments upfront.',
   },
   {
     num: '03',
-    icon: SlidersHorizontal,
-    title: 'Select Condition',
-    desc: 'Match Flawless or any upfront fixed-tier wear adjustment.',
+    icon: PlayCircle,
+    title: 'Quick Inspection Guide',
+    desc: 'Watch our 45-second check to confirm screen, battery, and parts.',
   },
   {
     num: '04',
     icon: Truck,
-    title: 'Instant Evaluation',
-    desc: 'Review your AED valuation and confirm free UAE pickup.',
+    title: 'Instant AED Evaluation',
+    desc: 'Lock your 7-day Dirham offer and schedule free UAE pickup.',
   },
 ];
 
@@ -260,16 +260,19 @@ export const HomePage: React.FC = () => {
                 <Link
                   key={brand.id}
                   to={`/sell?brand=${brand.id}`}
-                  className="card-lift group flex h-[72px] items-center justify-center rounded-xl border border-[#E2E8F0] bg-white px-2.5 py-2 hover:border-[#2095D3] sm:h-22 sm:rounded-2xl sm:p-4"
+                  className="card-lift group flex h-[76px] flex-col items-center justify-center gap-1.5 rounded-xl border border-[#E2E8F0] bg-white px-2.5 py-2 hover:border-[#2095D3] sm:h-24 sm:rounded-2xl sm:p-4"
                 >
                   <BrandLogo
                     brandId={brand.id}
                     className={
                       brand.id === 'google' || brand.id === 'xiaomi'
-                        ? 'h-8 w-8 transition-transform duration-200 group-hover:scale-105 sm:h-10 sm:w-10'
-                        : 'h-5.5 max-w-[88px] transition-transform duration-200 group-hover:scale-105 sm:h-7 sm:max-w-[120px]'
+                        ? 'h-7 w-7 transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-105 sm:h-9 sm:w-9'
+                        : 'h-5 max-w-[88px] transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-105 sm:h-6.5 sm:max-w-[116px]'
                     }
                   />
+                  <span className="font-mono text-[9.5px] font-medium text-[#64748B] transition-colors group-hover:text-[#187BB2] sm:text-[10.5px]">
+                    Up to {formatAed(brand.maxPayoutAed)}
+                  </span>
                 </Link>
               ))}
             </div>
@@ -338,9 +341,14 @@ export const HomePage: React.FC = () => {
                     <h3 className="mt-3 font-['Plus_Jakarta_Sans'] text-xs font-bold text-[#0F172A] sm:text-sm">
                       {model.name}
                     </h3>
-                    <p className="mt-0.5 text-[10px] text-[#64748B] sm:text-[11px]">{storageSummary}</p>
-                    <p className="mt-2 font-mono text-xs font-bold text-[#187BB2] tabular-nums">
-                      Up to {formatAed(maxPrice)}
+                    {model.specBadge && (
+                      <p className="mt-0.5 text-[10px] font-medium text-[#475569] sm:text-[11px]">
+                        {model.specBadge}
+                      </p>
+                    )}
+                    <p className="mt-0.5 text-[10px] text-[#64748B]">{storageSummary}</p>
+                    <p className="mt-2.5 inline-flex items-center gap-1 rounded-full bg-[#F0F8FD] px-3 py-1 font-mono text-[11px] font-bold text-[#187BB2] tabular-nums transition-colors group-hover:bg-[#2095D3] group-hover:text-white">
+                      <span>Up to {formatAed(maxPrice)}</span>
                     </p>
                   </Link>
                 );

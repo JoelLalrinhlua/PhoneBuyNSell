@@ -121,19 +121,13 @@ export const Navbar: React.FC = () => {
               aria-label={isDashboardPage ? 'Close user dashboard' : 'Open user dashboard'}
               aria-pressed={isDashboardPage}
               title="My Dashboard"
-              className={`btn-press relative flex h-9.5 w-9.5 cursor-pointer items-center justify-center rounded-full border transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2095D3] sm:h-10 sm:w-10 ${
+              className={`btn-press flex h-9.5 w-9.5 cursor-pointer items-center justify-center rounded-full border transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2095D3] sm:h-10 sm:w-10 ${
                 isDashboardPage
-                  ? 'border-[#2095D3] bg-[#2095D3] text-white shadow-[0_4px_12px_rgba(32,149,211,0.28)]'
+                  ? 'border-[#2095D3] bg-[#2095D3] text-white shadow-[0_4px_12px_rgba(32,149,211,0.25)]'
                   : 'border-[#CBD5E1] bg-[#F8FAFC] text-[#0F172A] hover:border-[#2095D3] hover:bg-[#F0F8FD] hover:text-[#2095D3]'
               }`}
             >
-              <User className="h-4.5 w-4.5" />
-              <span
-                aria-hidden="true"
-                className={`absolute right-0 bottom-0 h-2.5 w-2.5 rounded-full border-2 border-white ${
-                  isDashboardPage ? 'bg-[#090D16]' : 'bg-[#059669]'
-                }`}
-              />
+              <User className="h-4.5 w-4.5 transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]" />
             </button>
           </div>
         </div>
