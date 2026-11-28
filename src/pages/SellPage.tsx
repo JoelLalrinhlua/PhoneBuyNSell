@@ -3,30 +3,28 @@ import { useSearchParams, Link } from 'react-router-dom';
 import {
   ArrowLeft,
   ArrowRight,
+  CalendarClock,
   Check,
   CheckCircle2,
   ChevronRight,
-  Search,
-  ShieldCheck,
-  Sparkles,
-  Truck,
-  Wallet,
-  X,
-  BatteryCharging,
-  Smartphone,
-  Cpu,
-  CalendarClock,
-  MapPin,
+  CircleHelp,
+  Hash,
+  MessageSquareText,
+  Minus,
+  Plus,
   Printer,
   RotateCcw,
-  Layers,
-  MessageSquareText,
+  Search,
+  Sparkles,
+  User,
+  X,
 } from 'lucide-react';
 import {
   BRANDS,
   CONDITION_TIERS,
+  DEFAULT_B2B_ACCOUNT,
+  INSPECTION_VIDEO_CONFIG,
   PHONE_MODELS,
-  UAE_EMIRATES,
 } from '../data/catalog';
 import { BrandLogo } from '../components/BrandLogo';
 import { AnimatedAed } from '../components/MotionPrimitives';
@@ -37,123 +35,174 @@ import {
 } from '../lib/valuationEngine';
 import { saveSellSubmission } from '../services/submissionService';
 import type {
-  BatteryHealthTier,
-  BodyPartsStatus,
   BrandId,
   ConditionId,
-  DeviceEvaluation,
-  FunctionalStatus,
-  PayoutMethod,
   PickupSlot,
-  ScreenStatus,
   SellSubmissionRecord,
   StorageCapacity,
-  UAEEmirate,
 } from '../types/buyback';
 
-type StepNumber = 1 | 2 | 3 | 4 | 5 | 6 | 7;
-type EvalSubStep = 1 | 2 | 3 | 4;
+/**
+ * Streamlined 5-Step Phone Selling Journey:
+ *  Step 1: Brand
+ *  Step 2: Model
+ *  Step 3: Storage
+ *  Step 4: Condition
+ *  Step 5: Evaluation
+ */
+type StepNumber = 1 | 2 | 3 | 4 | 5;
 
-const STEPS: { step: StepNumber; short: string; title: string }[] = [
-  { step: 1, short: 'Brand', title: 'Select Brand' },
-  { step: 2, short: 'Model', title: 'Select Model' },
-  { step: 3, short: 'Storage', title: 'Select Storage' },
-  { step: 4, short: 'Condition', title: 'Select Condition' },
-  { step: 5, short: 'Evaluation', title: 'Device Check' },
-  { step: 6, short: 'Estimate', title: 'Price Summary' },
-  { step: 7, short: 'Submit', title: 'Selling Details' },
+const STEPS: { step: StepNumber; label: string; title: string }[] = [
+  { step: 1, label: 'Brand', title: 'Select Brand' },
+  { step: 2, label: 'Model', title: 'Select Model' },
+  { step: 3, label: 'Storage', title: 'Select Storage' },
+  { step: 4, label: 'Condition', title: 'Select Condition' },
+  { step: 5, label: 'Evaluation', title: 'Phone Evaluation' },
 ];
 
-const EVAL_SUBSTEPS: { sub: EvalSubStep; short: string; label: string }[] = [
-  { sub: 1, short: 'Battery', label: 'Battery Health' },
-  { sub: 2, short: 'Display', label: 'Display Glass' },
-  { sub: 3, short: 'Body & Parts', label: 'Body & Parts' },
-  { sub: 4, short: 'Function', label: 'Functionality' },
-];
+const DRAFT_STORAGE_KEY = 'arsouq_sell_draft_v2';
+const AUTO_ADVANCE_MS = 160;
 
-const INITIAL_EVALUATION: DeviceEvaluation = {
-  batteryHealth: '90-above',
-  screenStatus: 'no-scratch',
-  bodyPartsStatus: 'no-scratch-original',
-  functionalStatus: 'full-working',
-  agentIssueDetails: '',
-};
+interface SellDraftState {
+  step: StepNumber;
+  brandId: BrandId | 'other' | null;
+  modelId: string | null;
+  customDeviceName: string;
+  storage: StorageCapacity | null;
+  colorName: string;
+  condition: ConditionId | null;
+  quantity: number;
+  imeiOrBatchRef: string;
+  deviceSpecRegion: 'UAE TDRA' | 'International';
+  pickupSlot: PickupSlot;
+  notes: string;
+}
 
-const AUTO_ADVANCE_MS = 180;
+function readSavedDraft(): SellDraftState | null {
+  try {
+    const raw = sessionStorage.getItem(DRAFT_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<SellDraftState>;
+    if (!parsed || typeof parsed.step !== 'number' || parsed.step < 1 || parsed.step > 5) {
+      return null;
+    }
+    return {
+      step: parsed.step as StepNumber,
+      brandId: parsed.brandId ?? null,
+      modelId: parsed.modelId ?? null,
+      customDeviceName: parsed.customDeviceName ?? '',
+      storage: parsed.storage ?? null,
+      colorName: parsed.colorName ?? '',
+      condition: parsed.condition ?? null,
+      quantity: typeof parsed.quantity === 'number' && parsed.quantity >= 1 ? parsed.quantity : 1,
+      imeiOrBatchRef: parsed.imeiOrBatchRef ?? '',
+      deviceSpecRegion:
+        parsed.deviceSpecRegion === 'International' ? 'International' : 'UAE TDRA',
+      pickupSlot: parsed.pickupSlot ?? 'tomorrow-morning',
+      notes: parsed.notes ?? '',
+    };
+  } catch {
+    return null;
+  }
+}
 
-export const SellPage: React.FC = () => {
-  const [searchParams] = useSearchParams();
+interface SellFlowProps {
+  searchParams: URLSearchParams;
+}
+
+const SellPageFlow: React.FC<SellFlowProps> = ({ searchParams }) => {
   const advanceTimerRef = useRef<number | null>(null);
 
-  const initialSetup = useMemo(() => {
+  const initialSetup = useMemo((): SellDraftState => {
     const brandParam = searchParams.get('brand') as BrandId | null;
     const modelParam = searchParams.get('model');
 
     const validBrand = BRANDS.find((b) => b.id === brandParam) ?? null;
-    const validModel =
-      modelParam ? PHONE_MODELS.find((m) => m.id === modelParam) ?? null : null;
+    const validModel = modelParam
+      ? (PHONE_MODELS.find((m) => m.id === modelParam) ?? null)
+      : null;
 
     if (validModel) {
       return {
-        step: 3 as StepNumber,
+        step: 3,
         brandId: validModel.brandId,
         modelId: validModel.id,
+        customDeviceName: '',
         storage: validModel.storageOptions[0].capacity,
         colorName: validModel.colors[0]?.name ?? 'Standard',
+        condition: null,
+        quantity: 1,
+        imeiOrBatchRef: '',
+        deviceSpecRegion: 'UAE TDRA',
+        pickupSlot: 'tomorrow-morning',
+        notes: '',
       };
     }
 
     if (validBrand) {
       return {
-        step: 2 as StepNumber,
+        step: 2,
         brandId: validBrand.id,
-        modelId: null as string | null,
-        storage: null as StorageCapacity | null,
+        modelId: null,
+        customDeviceName: '',
+        storage: null,
         colorName: '',
+        condition: null,
+        quantity: 1,
+        imeiOrBatchRef: '',
+        deviceSpecRegion: 'UAE TDRA',
+        pickupSlot: 'tomorrow-morning',
+        notes: '',
       };
     }
 
+    const saved = readSavedDraft();
+    if (saved) return saved;
+
     return {
-      step: 1 as StepNumber,
-      brandId: null as BrandId | null,
-      modelId: null as string | null,
-      storage: null as StorageCapacity | null,
+      step: 1,
+      brandId: null,
+      modelId: null,
+      customDeviceName: '',
+      storage: null,
       colorName: '',
+      condition: null,
+      quantity: 1,
+      imeiOrBatchRef: '',
+      deviceSpecRegion: 'UAE TDRA',
+      pickupSlot: 'tomorrow-morning',
+      notes: '',
     };
   }, [searchParams]);
 
   const [currentStep, setCurrentStep] = useState<StepNumber>(initialSetup.step);
-  const [evalSubStep, setEvalSubStep] = useState<EvalSubStep>(1);
   const [transitionDir, setTransitionDir] = useState<'forward' | 'backward'>('forward');
 
   const [selectedBrandId, setSelectedBrandId] = useState<BrandId | 'other' | null>(
     initialSetup.brandId
   );
   const [selectedModelId, setSelectedModelId] = useState<string | null>(initialSetup.modelId);
-  const [customDeviceName, setCustomDeviceName] = useState('');
+  const [customDeviceName, setCustomDeviceName] = useState(initialSetup.customDeviceName);
   const [selectedStorage, setSelectedStorage] = useState<StorageCapacity | null>(
     initialSetup.storage
   );
   const [selectedColor, setSelectedColor] = useState<string>(initialSetup.colorName);
-  const [selectedCondition, setSelectedCondition] = useState<ConditionId | null>(null);
-  const [evaluation, setEvaluation] = useState<DeviceEvaluation>(INITIAL_EVALUATION);
+  const [selectedCondition, setSelectedCondition] = useState<ConditionId | null>(
+    initialSetup.condition
+  );
 
   const [modelQuery, setModelQuery] = useState('');
   const [seriesFilter, setSeriesFilter] = useState<string>('all');
+  const [showInspectionTips, setShowInspectionTips] = useState(false);
 
-  const [fullName, setFullName] = useState('');
-  const [phoneUae, setPhoneUae] = useState('');
-  const [email, setEmail] = useState('');
-  const [emirate, setEmirate] = useState<UAEEmirate>('Dubai');
-  const [areaAndStreet, setAreaAndStreet] = useState('');
-  const [buildingOrVilla, setBuildingOrVilla] = useState('');
-  const [pickupSlot, setPickupSlot] = useState<PickupSlot>('tomorrow-morning');
-  const [payoutMethod, setPayoutMethod] = useState<PayoutMethod>('uae-bank-iban');
-  const [ibanOptional, setIbanOptional] = useState('');
+  const [quantity, setQuantity] = useState<number>(initialSetup.quantity);
+  const [imeiOrBatchRef, setImeiOrBatchRef] = useState(initialSetup.imeiOrBatchRef);
   const [deviceSpecRegion, setDeviceSpecRegion] = useState<'UAE TDRA' | 'International'>(
-    'UAE TDRA'
+    initialSetup.deviceSpecRegion
   );
-  const [notes, setNotes] = useState('');
+  const [pickupSlot, setPickupSlot] = useState<PickupSlot>(initialSetup.pickupSlot);
+  const [notes, setNotes] = useState(initialSetup.notes);
+  const [showOptionalNotes, setShowOptionalNotes] = useState(Boolean(initialSetup.notes));
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [submittedRecord, setSubmittedRecord] = useState<SellSubmissionRecord | null>(null);
 
@@ -171,34 +220,53 @@ export const SellPage: React.FC = () => {
     }, AUTO_ADVANCE_MS);
   };
 
-  const navigateToStep = (target: StepNumber, targetSubStep?: EvalSubStep) => {
+  const navigateToStep = (target: StepNumber) => {
     if (advanceTimerRef.current) window.clearTimeout(advanceTimerRef.current);
-    if (target > currentStep) {
-      setTransitionDir('forward');
-    } else if (target < currentStep) {
-      setTransitionDir('backward');
-    } else if (target === 5 && targetSubStep !== undefined) {
-      setTransitionDir(targetSubStep >= evalSubStep ? 'forward' : 'backward');
-    }
+    setTransitionDir(target >= currentStep ? 'forward' : 'backward');
     setCurrentStep(target);
-    if (targetSubStep !== undefined) {
-      setEvalSubStep(targetSubStep);
-    }
   };
 
   useEffect(() => {
-    setCurrentStep(initialSetup.step);
-    setEvalSubStep(1);
-    setSelectedBrandId(initialSetup.brandId);
-    setSelectedModelId(initialSetup.modelId);
-    setSelectedStorage(initialSetup.storage);
-    setSelectedColor(initialSetup.colorName);
-    setSubmittedRecord(null);
-  }, [initialSetup]);
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  }, [currentStep]);
 
+  // Persist sell draft in sessionStorage so opening User Dashboard preserves selections
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [currentStep, evalSubStep]);
+    if (submittedRecord) return;
+    try {
+      const draft: SellDraftState = {
+        step: currentStep,
+        brandId: selectedBrandId,
+        modelId: selectedModelId,
+        customDeviceName,
+        storage: selectedStorage,
+        colorName: selectedColor,
+        condition: selectedCondition,
+        quantity,
+        imeiOrBatchRef,
+        deviceSpecRegion,
+        pickupSlot,
+        notes,
+      };
+      sessionStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft));
+    } catch {
+      // Ignore storage quota issues
+    }
+  }, [
+    submittedRecord,
+    currentStep,
+    selectedBrandId,
+    selectedModelId,
+    customDeviceName,
+    selectedStorage,
+    selectedColor,
+    selectedCondition,
+    quantity,
+    imeiOrBatchRef,
+    deviceSpecRegion,
+    pickupSlot,
+    notes,
+  ]);
 
   const isCustomUnlistedDevice =
     selectedBrandId === 'other' || selectedModelId === 'other-device';
@@ -247,7 +315,7 @@ export const SellPage: React.FC = () => {
 
   const liveValuation = useMemo(() => {
     if (isCustomUnlistedDevice) {
-      return calculateValuation(null, null, 'others-agent', evaluation);
+      return calculateValuation(null, null, 'others-agent', quantity);
     }
     if (!selectedModel) return null;
     const activeStorage = selectedStorage ?? selectedModel.storageOptions[0].capacity;
@@ -255,42 +323,24 @@ export const SellPage: React.FC = () => {
       selectedModel,
       activeStorage,
       activeConditionForCalc,
-      evaluation
+      quantity
     );
-  }, [isCustomUnlistedDevice, selectedModel, selectedStorage, activeConditionForCalc, evaluation]);
-
-  const progressPercent = useMemo(() => {
-    if (currentStep < 5) return ((currentStep - 1) / 6.4) * 100 + 9;
-    if (currentStep === 5) {
-      const base = (4 / 6.4) * 100;
-      const span = (1 / 6.4) * 100;
-      return base + ((evalSubStep - 1) / 4) * span + 5;
-    }
-    if (currentStep === 6) return 88;
-    return 100;
-  }, [currentStep, evalSubStep]);
+  }, [isCustomUnlistedDevice, selectedModel, selectedStorage, activeConditionForCalc, quantity]);
 
   const canNavigateToStep = (target: StepNumber): boolean => {
     if (submittedRecord) return false;
     if (target === 1) return true;
     if (isCustomUnlistedDevice) {
-      return target === 6 || target === 7;
+      return target === 5 || (target === 2 && selectedBrandId !== 'other');
     }
     if (target === 2) return Boolean(selectedBrandId);
     if (target === 3) return Boolean(selectedBrandId && selectedModelId);
     if (target === 4) return Boolean(selectedBrandId && selectedModelId && selectedStorage);
-    if (target === 5)
-      return Boolean(
-        selectedBrandId &&
-          selectedModelId &&
-          selectedStorage &&
-          selectedCondition &&
-          selectedCondition !== 'others-agent'
-      );
-    if (target >= 6)
+    if (target === 5) {
       return Boolean(
         selectedBrandId && selectedModelId && selectedStorage && selectedCondition
       );
+    }
     return false;
   };
 
@@ -300,8 +350,12 @@ export const SellPage: React.FC = () => {
       setSelectedModelId(null);
       setSelectedStorage(null);
       setSelectedColor('');
+      setSelectedCondition(null);
       setSeriesFilter('all');
       setModelQuery('');
+    } else if (selectedModelId === 'other-device') {
+      setSelectedModelId(null);
+      setSelectedCondition(null);
     }
     scheduleAutoAdvance(() => setCurrentStep(2));
   };
@@ -310,7 +364,7 @@ export const SellPage: React.FC = () => {
     setSelectedBrandId((prev) => prev ?? 'other');
     setSelectedModelId('other-device');
     setSelectedCondition('others-agent');
-    scheduleAutoAdvance(() => setCurrentStep(6));
+    scheduleAutoAdvance(() => setCurrentStep(5));
   };
 
   const handleSelectModel = (modelId: string) => {
@@ -329,6 +383,10 @@ export const SellPage: React.FC = () => {
       selectedColor && model.colors.some((c) => c.name === selectedColor);
     setSelectedColor(hasExistingColor ? selectedColor : (model.colors[0]?.name ?? 'Standard'));
 
+    if (selectedCondition === 'others-agent' && isCustomUnlistedDevice) {
+      setSelectedCondition(null);
+    }
+
     scheduleAutoAdvance(() => setCurrentStep(3));
   };
 
@@ -339,109 +397,15 @@ export const SellPage: React.FC = () => {
 
   const handleSelectCondition = (condId: ConditionId) => {
     setSelectedCondition(condId);
-
-    if (condId === 'others-agent') {
-      scheduleAutoAdvance(() => setCurrentStep(6));
-      return;
-    }
-
-    setEvaluation((prev) => {
-      switch (condId) {
-        case 'zero-scratch':
-          return {
-            ...prev,
-            batteryHealth: '90-above',
-            screenStatus: 'no-scratch',
-            bodyPartsStatus: 'no-scratch-original',
-            functionalStatus: 'full-working',
-          };
-        case 'small-scratch':
-          return {
-            ...prev,
-            batteryHealth: prev.batteryHealth === 'below-85' ? '85-89' : prev.batteryHealth,
-            screenStatus: 'small-scratch',
-            bodyPartsStatus: 'no-scratch-original',
-            functionalStatus: 'full-working',
-          };
-        case 'medium-scratch':
-          return {
-            ...prev,
-            batteryHealth: prev.batteryHealth === 'below-85' ? '85-89' : prev.batteryHealth,
-            screenStatus: 'medium-deep-scratch',
-            bodyPartsStatus: 'body-dent-scratch',
-            functionalStatus: 'full-working',
-          };
-        case 'parts-change-genuine':
-          return {
-            ...prev,
-            batteryHealth: '85-89',
-            screenStatus: 'no-scratch',
-            bodyPartsStatus: 'genuine-part-changed',
-            functionalStatus: 'full-working',
-          };
-        case 'more-scratch-broken':
-          return {
-            ...prev,
-            screenStatus: 'display-crack',
-            bodyPartsStatus: 'back-glass-broken-dent',
-            functionalStatus: 'full-working',
-          };
-        case 'hardware-unknown-parts':
-          return {
-            ...prev,
-            functionalStatus: 'faceid-hardware-issue',
-          };
-      }
-    });
-
-    scheduleAutoAdvance(() => {
-      setEvalSubStep(1);
-      setCurrentStep(5);
-    });
-  };
-
-  const handleSelectBattery = (tier: BatteryHealthTier) => {
-    setEvaluation((p) => ({ ...p, batteryHealth: tier }));
-    scheduleAutoAdvance(() => setEvalSubStep(2));
-  };
-
-  const handleSelectScreen = (status: ScreenStatus) => {
-    setEvaluation((p) => ({ ...p, screenStatus: status }));
-    scheduleAutoAdvance(() => setEvalSubStep(3));
-  };
-
-  const handleSelectBodyParts = (status: BodyPartsStatus) => {
-    setEvaluation((p) => ({ ...p, bodyPartsStatus: status }));
-    scheduleAutoAdvance(() => setEvalSubStep(4));
-  };
-
-  const handleSelectFunctionality = (status: FunctionalStatus) => {
-    setEvaluation((p) => ({ ...p, functionalStatus: status }));
-    if (status === 'other-agent-issue') {
-      setSelectedCondition('others-agent');
-    }
-    scheduleAutoAdvance(() => setCurrentStep(6));
+    scheduleAutoAdvance(() => setCurrentStep(5));
   };
 
   const handleStepBack = () => {
     if (advanceTimerRef.current) window.clearTimeout(advanceTimerRef.current);
     setTransitionDir('backward');
 
-    if (currentStep === 6 && isCustomUnlistedDevice) {
+    if (currentStep === 5 && isCustomUnlistedDevice) {
       setCurrentStep(selectedBrandId && selectedBrandId !== 'other' ? 2 : 1);
-      return;
-    }
-    if (currentStep === 6 && selectedCondition === 'others-agent') {
-      setCurrentStep(4);
-      return;
-    }
-    if (currentStep === 5 && evalSubStep > 1) {
-      setEvalSubStep((s) => (s - 1) as EvalSubStep);
-      return;
-    }
-    if (currentStep === 6) {
-      setCurrentStep(5);
-      setEvalSubStep(4);
       return;
     }
     if (currentStep > 1) {
@@ -449,20 +413,27 @@ export const SellPage: React.FC = () => {
     }
   };
 
+  const adjustQuantity = (delta: number) => {
+    setQuantity((prev) => Math.min(500, Math.max(1, prev + delta)));
+  };
+
   const validateAndSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!liveValuation) return;
 
     const errors: Record<string, string> = {};
-    if (fullName.trim().length < 2) errors.fullName = 'Enter your full name.';
-    if (phoneUae.replace(/\D/g, '').length < 9)
-      errors.phoneUae = 'Enter a valid UAE mobile number.';
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()))
-      errors.email = 'Enter a valid email address.';
-    if (areaAndStreet.trim().length < 3)
-      errors.areaAndStreet = 'Enter your community and street.';
-    if (buildingOrVilla.trim().length < 2)
-      errors.buildingOrVilla = 'Enter your building or villa.';
+    if (isCustomUnlistedDevice && customDeviceName.trim().length < 2) {
+      errors.customDeviceName = 'Enter the brand, model, and storage.';
+    }
+    if (imeiOrBatchRef.trim().length < 5) {
+      errors.imeiOrBatchRef =
+        quantity > 1
+          ? 'Enter a batch reference or primary IMEI.'
+          : 'Enter a valid 15-digit IMEI or serial number.';
+    }
+    if (liveValuation.isAgentQuote && notes.trim().length < 4) {
+      errors.notes = 'Briefly describe the phone condition for our specialist.';
+    }
 
     setFormErrors(errors);
     if (Object.keys(errors).length > 0) return;
@@ -478,28 +449,33 @@ export const SellPage: React.FC = () => {
       colorName: selectedColor || 'Standard',
       conditionId: liveValuation.appliedTierId,
       conditionTitle: liveValuation.appliedTierTitle,
-      evaluation,
       valuation: liveValuation,
-      seller: {
-        fullName: fullName.trim(),
-        phoneUae: phoneUae.trim(),
-        email: email.trim(),
-        emirate,
-        areaAndStreet: areaAndStreet.trim(),
-        buildingOrVilla: buildingOrVilla.trim(),
-        pickupSlot,
-        payoutMethod,
-        ibanOptional: ibanOptional.trim() || undefined,
+      account: DEFAULT_B2B_ACCOUNT,
+      saleDetails: {
+        quantity,
+        imeiOrBatchRef: imeiOrBatchRef.trim(),
         deviceSpecRegion,
+        pickupSlot,
         notes: notes.trim() || undefined,
       },
     });
 
+    try {
+      sessionStorage.removeItem(DRAFT_STORAGE_KEY);
+    } catch {
+      // Ignore
+    }
+
     setSubmittedRecord(saved);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: 'auto' });
   };
 
   const handleResetAnotherPhone = () => {
+    try {
+      sessionStorage.removeItem(DRAFT_STORAGE_KEY);
+    } catch {
+      // Ignore
+    }
     setSubmittedRecord(null);
     setSelectedBrandId(null);
     setSelectedModelId(null);
@@ -507,130 +483,144 @@ export const SellPage: React.FC = () => {
     setSelectedStorage(null);
     setSelectedColor('');
     setSelectedCondition(null);
-    setEvaluation(INITIAL_EVALUATION);
-    setEvalSubStep(1);
+    setQuantity(1);
+    setImeiOrBatchRef('');
+    setNotes('');
+    setShowOptionalNotes(false);
+    setFormErrors({});
     setTransitionDir('forward');
     setCurrentStep(1);
+  };
+
+  const getStepSummaryCaption = (step: StepNumber): string => {
+    switch (step) {
+      case 1:
+        if (selectedBrand) return selectedBrand.name;
+        if (selectedBrandId === 'other') return 'Custom';
+        return 'Select';
+      case 2:
+        if (selectedModel) return selectedModel.name;
+        if (isCustomUnlistedDevice) return customDeviceName || 'Unlisted';
+        return '—';
+      case 3:
+        if (isCustomUnlistedDevice) return 'Custom';
+        return selectedStorage ?? '—';
+      case 4: {
+        if (isCustomUnlistedDevice) return 'Agent Quote';
+        if (!selectedCondition) return '—';
+        return (
+          CONDITION_TIERS.find((t) => t.id === selectedCondition)?.shortLabel ?? 'Selected'
+        );
+      }
+      case 5:
+        if (!liveValuation) return '—';
+        if (liveValuation.isAgentQuote) return 'Quote';
+        if (selectedCondition) return formatAed(liveValuation.finalEstimateAed);
+        return formatAed(liveValuation.storageBaseAed);
+    }
   };
 
   const slideAnimationClass =
     transitionDir === 'forward' ? 'step-slide-forward' : 'step-slide-backward';
 
   // =========================================================================
-  // SUBMITTED CONFIRMATION RECEIPT VIEW
+  // SUBMITTED SELL ORDER RECEIPT VIEW
   // =========================================================================
   if (submittedRecord) {
     const slotLabel =
-      submittedRecord.seller.pickupSlot === 'today-evening'
+      submittedRecord.saleDetails.pickupSlot === 'today-evening'
         ? 'Today · 6:00 PM – 9:00 PM'
-        : submittedRecord.seller.pickupSlot === 'tomorrow-morning'
+        : submittedRecord.saleDetails.pickupSlot === 'tomorrow-morning'
           ? 'Tomorrow · 10:00 AM – 1:00 PM'
           : 'Tomorrow · 5:00 PM – 9:00 PM';
 
-    const payoutLabel =
-      submittedRecord.seller.payoutMethod === 'uae-bank-iban'
-        ? 'UAE Bank IBAN'
-        : submittedRecord.seller.payoutMethod === 'instant-cash'
-          ? 'Cash on Pickup'
-          : 'Digital Wallet';
-
     return (
-      <main id="main-content" className="min-h-[82vh] bg-[#F6F8FB] py-8 sm:py-14">
-        <div className="step-slide-forward mx-auto max-w-3xl px-4 sm:px-8">
-          <div className="overflow-hidden rounded-3xl border border-[#E2E8F0] bg-white shadow-[0_12px_36px_rgba(15,23,42,0.05)]">
-            <div className="bg-[#0B1120] p-6 text-white sm:p-9">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <img
-                    src="/images/arsouq-logo-nav.png"
-                    alt="arsouq.com"
-                    width={95}
-                    height={35}
-                    className="h-6 w-auto object-contain sm:h-7"
-                  />
-                  <span className="h-4 w-px bg-white/15" />
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-[#2095D3]/20 px-3 py-1 font-mono text-[11px] font-semibold text-[#5CC2F8]">
-                    <CheckCircle2 className="h-3.5 w-3.5" />
-                    {submittedRecord.valuation.isAgentQuote ? 'Request Sent' : 'Confirmed'}
-                  </span>
-                </div>
+      <main
+        id="main-content"
+        className="min-h-[calc(100svh-3.5rem)] bg-[#F6F8FB] py-5 sm:min-h-[calc(100svh-4rem)] sm:py-10"
+      >
+        <div className="step-slide-forward mx-auto max-w-2xl px-4 sm:px-6">
+          <div className="overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white shadow-[0_12px_36px_rgba(15,23,42,0.05)] sm:rounded-3xl">
+            <div className="bg-[#0B1120] p-5 text-white sm:p-7">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-[#2095D3]/20 px-3 py-1 font-mono text-[11px] font-semibold text-[#5CC2F8]">
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  {submittedRecord.valuation.isAgentQuote
+                    ? 'Evaluation Requested'
+                    : 'Sell Order Confirmed'}
+                </span>
                 <span className="font-mono text-xs text-slate-400">
                   Ref: <strong className="text-white">{submittedRecord.referenceCode}</strong>
                 </span>
               </div>
 
-              <div className="mt-6 grid grid-cols-1 items-end gap-4 sm:grid-cols-12">
-                <div className="sm:col-span-7">
-                  <p className="text-[11px] tracking-[0.1em] text-slate-400 uppercase">
+              <div className="mt-4 flex flex-wrap items-end justify-between gap-4">
+                <div>
+                  <p className="text-[11px] tracking-[0.08em] text-slate-400 uppercase">
                     {submittedRecord.valuation.isAgentQuote
-                      ? 'Quote Status'
-                      : '7-Day Locked Offer'}
+                      ? 'Evaluation Status'
+                      : 'Evaluated Payout'}
                   </p>
-                  <p className="mt-1 font-['Plus_Jakarta_Sans'] text-3xl font-extrabold tracking-[-0.03em] text-white tabular-nums sm:text-5xl">
+                  <p className="mt-0.5 font-['Plus_Jakarta_Sans'] text-2xl font-extrabold tracking-[-0.03em] text-white tabular-nums sm:text-4xl">
                     {submittedRecord.valuation.isAgentQuote
                       ? 'Reply by Agent'
                       : formatAed(submittedRecord.valuation.finalEstimateAed)}
                   </p>
-                  <p className="mt-1.5 text-xs text-slate-300 sm:text-sm">
-                    {submittedRecord.brandName} {submittedRecord.modelName}
+                  <p className="mt-1 text-xs text-slate-300">
+                    {submittedRecord.saleDetails.quantity} &times; {submittedRecord.brandName}{' '}
+                    {submittedRecord.modelName}
                     {submittedRecord.storage !== 'Custom'
                       ? ` · ${submittedRecord.storage} · ${submittedRecord.colorName}`
                       : ''}
                   </p>
                 </div>
 
-                <div className="sm:col-span-5 sm:text-right">
-                  <p className="text-xs text-slate-400">Condition</p>
-                  <p className="text-sm font-semibold text-white">
+                <div className="text-left sm:text-right">
+                  <p className="text-[11px] text-slate-400">Condition</p>
+                  <p className="text-xs font-semibold text-white">
                     {submittedRecord.conditionTitle}
                   </p>
-                  <p className="mt-2 text-xs text-slate-400">Payout</p>
-                  <p className="text-sm font-semibold text-white">{payoutLabel}</p>
+                  <p className="mt-1.5 text-[11px] text-slate-400">IMEI / Ref</p>
+                  <p className="font-mono text-xs font-semibold text-white">
+                    {submittedRecord.saleDetails.imeiOrBatchRef}
+                  </p>
                 </div>
               </div>
             </div>
 
-            <div className="p-6 sm:p-9">
-              <div className="grid grid-cols-1 gap-6 border-b border-[#E2E8F0] pb-6 sm:grid-cols-2">
+            <div className="p-5 sm:p-7">
+              <div className="grid grid-cols-1 gap-4 border-b border-[#E2E8F0] pb-4 text-xs sm:grid-cols-2">
                 <div>
-                  <h2 className="font-mono text-xs font-semibold text-[#64748B] uppercase">
-                    Collection Address
-                  </h2>
-                  <p className="mt-2 font-['Plus_Jakarta_Sans'] text-sm font-bold text-[#0F172A]">
-                    {submittedRecord.seller.fullName}
+                  <p className="font-mono text-[10.5px] font-semibold text-[#64748B] uppercase">
+                    Collection Slot
                   </p>
-                  <p className="mt-0.5 text-xs text-[#64748B]">
-                    {submittedRecord.seller.buildingOrVilla}, {submittedRecord.seller.areaAndStreet},{' '}
-                    {submittedRecord.seller.emirate}
+                  <p className="mt-1 font-['Plus_Jakarta_Sans'] text-sm font-bold text-[#0F172A]">
+                    {slotLabel}
                   </p>
-                  <p className="mt-1 font-mono text-xs text-[#64748B]">
-                    {submittedRecord.seller.phoneUae}
+                  <p className="mt-0.5 text-[#64748B]">
+                    {submittedRecord.account.registeredAddress}
                   </p>
                 </div>
 
                 <div>
-                  <h2 className="font-mono text-xs font-semibold text-[#64748B] uppercase">
-                    Schedule
-                  </h2>
-                  <p className="mt-2 font-['Plus_Jakarta_Sans'] text-sm font-bold text-[#0F172A]">
-                    {submittedRecord.valuation.isAgentQuote
-                      ? 'Specialist Callback'
-                      : slotLabel}
+                  <p className="font-mono text-[10.5px] font-semibold text-[#64748B] uppercase">
+                    Payout Account
                   </p>
-                  <p className="mt-1 text-xs leading-relaxed text-[#64748B]">
-                    {submittedRecord.valuation.isAgentQuote
-                      ? 'Our specialist will contact you shortly with your best AED offer.'
-                      : 'Our courier messages 30 minutes before arrival and pays immediately on verification.'}
+                  <p className="mt-1 font-['Plus_Jakarta_Sans'] text-sm font-bold text-[#0F172A]">
+                    {submittedRecord.account.contactPerson}
+                  </p>
+                  <p className="mt-0.5 font-mono text-[#64748B]">
+                    {submittedRecord.account.maskedIban}
                   </p>
                 </div>
               </div>
 
-              <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+              <div className="mt-5 flex flex-wrap items-center justify-between gap-2.5">
                 <div className="flex flex-wrap gap-2">
                   <button
                     type="button"
                     onClick={() => window.print()}
-                    className="btn-press inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-[#CBD5E1] bg-white px-4 py-2 text-xs font-semibold text-[#0F172A] hover:border-[#2095D3]"
+                    className="btn-press inline-flex h-9.5 cursor-pointer items-center gap-1.5 rounded-full border border-[#CBD5E1] bg-white px-4 text-xs font-semibold text-[#0F172A] hover:border-[#2095D3]"
                   >
                     <Printer className="h-3.5 w-3.5" />
                     Print
@@ -638,7 +628,7 @@ export const SellPage: React.FC = () => {
                   <button
                     type="button"
                     onClick={handleResetAnotherPhone}
-                    className="btn-press inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-[#CBD5E1] bg-white px-4 py-2 text-xs font-semibold text-[#0F172A] hover:border-[#2095D3]"
+                    className="btn-press inline-flex h-9.5 cursor-pointer items-center gap-1.5 rounded-full border border-[#CBD5E1] bg-white px-4 text-xs font-semibold text-[#0F172A] hover:border-[#2095D3]"
                   >
                     <RotateCcw className="h-3.5 w-3.5" />
                     Sell Another
@@ -646,10 +636,10 @@ export const SellPage: React.FC = () => {
                 </div>
 
                 <Link
-                  to="/"
-                  className="btn-press inline-flex items-center rounded-full bg-[#2095D3] px-6 py-2 text-xs font-semibold text-white hover:bg-[#187BB2]"
+                  to="/dashboard"
+                  className="btn-press inline-flex h-9.5 items-center rounded-full bg-[#2095D3] px-5 text-xs font-semibold text-white hover:bg-[#187BB2]"
                 >
-                  Done
+                  View in Dashboard
                 </Link>
               </div>
             </div>
@@ -660,153 +650,35 @@ export const SellPage: React.FC = () => {
   }
 
   // =========================================================================
-  // INTERACTIVE STEP-BY-STEP CONFIGURATOR
+  // COMPACT 5-STEP PHONE SELLING VIEW + BOTTOM SCREEN PROGRESSION BARS
   // =========================================================================
   return (
-    <main id="main-content" className="route-enter min-h-screen bg-[#F6F8FB] pb-16">
-      {/* Compact Sticky Progress Header */}
-      <div className="sticky top-14 z-30 border-b border-[#E2E8F0] bg-white/95 backdrop-blur-md sm:top-16">
-        <div className="mx-auto max-w-[1280px] px-4 py-2.5 sm:px-8 sm:py-3 lg:px-10">
-          {/* Desktop 7-Step Tracker */}
-          <nav aria-label="Valuation steps" className="hidden lg:block">
-            <ol className="grid grid-cols-7 gap-2">
-              {STEPS.map((item) => {
-                const isActive = currentStep === item.step;
-                const isCompleted = currentStep > item.step;
-                const unlocked = canNavigateToStep(item.step);
-
-                return (
-                  <li key={item.step}>
-                    <button
-                      type="button"
-                      disabled={!unlocked}
-                      onClick={() => unlocked && navigateToStep(item.step)}
-                      className={`flex w-full items-center gap-2 rounded-xl border px-3 py-2 text-left transition-colors ${
-                        isActive
-                          ? 'cursor-pointer border-[#2095D3] bg-[#2095D3] text-white'
-                          : isCompleted
-                            ? 'cursor-pointer border-[#E2E8F0] bg-[#F6F8FB] text-[#0F172A] hover:border-[#2095D3]'
-                            : unlocked
-                              ? 'cursor-pointer border-transparent text-[#64748B] hover:bg-[#F6F8FB]'
-                              : 'cursor-not-allowed border-transparent text-slate-400'
-                      }`}
-                    >
-                      <span
-                        className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full font-mono text-[10px] font-bold ${
-                          isActive
-                            ? 'bg-white text-[#2095D3]'
-                            : isCompleted
-                              ? 'bg-[#2095D3] text-white'
-                              : 'bg-slate-200 text-[#64748B]'
-                        }`}
-                      >
-                        {isCompleted ? <Check className="h-3 w-3" /> : `0${item.step}`}
-                      </span>
-                      <span className="truncate text-xs font-semibold">{item.short}</span>
-                    </button>
-                  </li>
-                );
-              })}
-            </ol>
-          </nav>
-
-          {/* Mobile & Tablet Compact Header */}
-          <div className="lg:hidden">
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex min-w-0 items-center gap-2">
-                {(currentStep > 1 || (currentStep === 5 && evalSubStep > 1)) && (
-                  <button
-                    type="button"
-                    onClick={handleStepBack}
-                    aria-label="Previous step"
-                    className="btn-press flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full border border-[#CBD5E1] bg-white text-[#0F172A]"
-                  >
-                    <ArrowLeft className="h-4 w-4" />
-                  </button>
-                )}
-                <div className="min-w-0">
-                  <p className="font-mono text-[10px] font-semibold text-[#64748B]">
-                    STEP 0{currentStep}/07
-                    {currentStep === 5 ? ` · ${evalSubStep}/4` : ''}
-                  </p>
-                  <p className="truncate font-['Plus_Jakarta_Sans'] text-xs font-bold text-[#0F172A] sm:text-sm">
-                    {currentStep === 5
-                      ? EVAL_SUBSTEPS[evalSubStep - 1].label
-                      : STEPS[currentStep - 1].title}
-                  </p>
-                </div>
-              </div>
-
-              {liveValuation && currentStep >= 3 && (
-                <div className="shrink-0 text-right">
-                  {liveValuation.isAgentQuote ? (
-                    <span className="font-mono text-xs font-bold text-[#187BB2]">
-                      Reply by agent
-                    </span>
-                  ) : (
-                    <AnimatedAed
-                      amount={liveValuation.finalEstimateAed}
-                      className="font-mono text-xs font-bold text-[#187BB2] sm:text-sm"
-                    />
-                  )}
-                </div>
-              )}
-            </div>
-
-            {(selectedBrand || selectedModel || selectedStorage) && (
-              <div className="mt-2 flex items-center gap-1.5 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                {selectedBrand && (
-                  <button
-                    type="button"
-                    onClick={() => navigateToStep(1)}
-                    className="shrink-0 rounded-full border border-[#E2E8F0] bg-[#F6F8FB] px-2.5 py-0.5 text-[11px] font-medium text-[#0F172A]"
-                  >
-                    {selectedBrand.name}
-                  </button>
-                )}
-                {selectedModel && (
-                  <button
-                    type="button"
-                    onClick={() => navigateToStep(2)}
-                    className="shrink-0 rounded-full border border-[#E2E8F0] bg-[#F6F8FB] px-2.5 py-0.5 text-[11px] font-medium text-[#0F172A]"
-                  >
-                    {selectedModel.name}
-                  </button>
-                )}
-                {selectedStorage && (
-                  <button
-                    type="button"
-                    onClick={() => navigateToStep(3)}
-                    className="shrink-0 rounded-full border border-[#E2E8F0] bg-[#F6F8FB] px-2.5 py-0.5 font-mono text-[11px] font-medium text-[#0F172A]"
-                  >
-                    {selectedStorage}
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="h-[2.5px] w-full bg-[#E2E8F0]" aria-hidden="true">
-          <div
-            style={{ width: `${progressPercent}%` }}
-            className="h-full bg-[#2095D3] transition-all duration-300 ease-out"
-          />
-        </div>
-      </div>
-
-      <div className="mx-auto max-w-[1280px] px-4 pt-4 sm:px-8 sm:pt-7 lg:px-10 lg:pt-8">
-        {/* STEP 1: BRAND SELECTION (All 12 fit on 1 screen on Mobile & Desktop) */}
+    <main
+      id="main-content"
+      className="route-enter min-h-[calc(100svh-3.5rem)] overflow-x-clip bg-[#F6F8FB] pb-24 sm:min-h-[calc(100svh-4rem)] sm:pb-28"
+    >
+      <div className="mx-auto max-w-[1280px] px-3.5 pt-3 sm:px-8 sm:pt-6 lg:px-10">
+        {/* =================================================================
+            STEP 1: BRAND
+           ================================================================= */}
         {currentStep === 1 && (
           <section key="step-1" className={slideAnimationClass}>
-            <div className="mb-3.5 sm:mb-5">
-              <h1 className="font-['Plus_Jakarta_Sans'] text-xl font-bold tracking-[-0.03em] text-[#0F172A] sm:text-3xl">
-                Select your brand
-              </h1>
+            <div className="mb-3 flex items-baseline justify-between gap-2 sm:mb-4">
+              <div>
+                <h1 className="font-['Plus_Jakarta_Sans'] text-lg font-extrabold tracking-[-0.03em] text-[#0F172A] sm:text-2xl">
+                  Select brand
+                </h1>
+                <p className="text-xs text-[#64748B]">
+                  Tap your smartphone manufacturer to begin.
+                </p>
+              </div>
+              <span className="font-mono text-[11px] font-semibold text-[#64748B]">
+                01 / 05
+              </span>
             </div>
 
             <div
-              className="grid grid-cols-3 gap-2.5 sm:grid-cols-4 sm:gap-3.5 lg:grid-cols-6"
+              className="grid grid-cols-3 gap-2 sm:grid-cols-4 sm:gap-3 lg:grid-cols-6"
               role="radiogroup"
               aria-label="Smartphone brands"
             >
@@ -819,28 +691,28 @@ export const SellPage: React.FC = () => {
                     role="radio"
                     aria-checked={isSelected}
                     onClick={() => handleSelectBrand(brand.id)}
-                    className={`card-lift group relative flex h-[72px] cursor-pointer items-center justify-center rounded-xl border px-2.5 py-2 sm:h-26 sm:rounded-2xl sm:p-4 ${
+                    className={`card-lift group relative flex h-[66px] cursor-pointer items-center justify-center rounded-xl border px-2 py-2 sm:h-22 sm:rounded-2xl sm:p-4 ${
                       isSelected
                         ? 'border-[#2095D3] bg-white ring-2 ring-[#2095D3]'
                         : 'border-[#E2E8F0] bg-white hover:border-[#2095D3]'
                     }`}
                   >
                     <span
-                      className={`absolute top-1.5 right-1.5 flex h-4 w-4 items-center justify-center rounded-full border sm:top-2.5 sm:right-2.5 sm:h-5 sm:w-5 ${
+                      className={`absolute top-1.5 right-1.5 flex h-4 w-4 items-center justify-center rounded-full border sm:top-2 sm:right-2 sm:h-4.5 sm:w-4.5 ${
                         isSelected
                           ? 'check-pop border-[#2095D3] bg-[#2095D3] text-white'
                           : 'border-[#E2E8F0] bg-white opacity-0 group-hover:opacity-100'
                       }`}
                     >
-                      {isSelected && <Check className="h-2.5 w-2.5 sm:h-3 sm:w-3" />}
+                      {isSelected && <Check className="h-2.5 w-2.5" />}
                     </span>
 
                     <BrandLogo
                       brandId={brand.id}
                       className={
                         brand.id === 'google' || brand.id === 'xiaomi'
-                          ? 'h-8 w-8 transition-transform duration-200 group-hover:scale-105 sm:h-11 sm:w-11'
-                          : 'h-5.5 max-w-[88px] transition-transform duration-200 group-hover:scale-105 sm:h-7 sm:max-w-[120px]'
+                          ? 'h-7 w-7 transition-transform duration-200 group-hover:scale-105 sm:h-10 sm:w-10'
+                          : 'h-5 max-w-[82px] transition-transform duration-200 group-hover:scale-105 sm:h-6.5 sm:max-w-[115px]'
                       }
                     />
                   </button>
@@ -851,62 +723,63 @@ export const SellPage: React.FC = () => {
             <button
               type="button"
               onClick={handleSelectOtherUnlistedDevice}
-              className="card-lift mt-3 flex w-full cursor-pointer items-center justify-between rounded-xl border border-[#E2E8F0] bg-white px-4 py-3 text-left hover:border-[#2095D3] sm:mt-4 sm:rounded-2xl sm:px-5 sm:py-3.5"
+              className="card-lift mt-2.5 flex w-full cursor-pointer items-center justify-between gap-3 rounded-xl border border-[#E2E8F0] bg-white px-3.5 py-2.5 text-left hover:border-[#2095D3] sm:mt-3.5 sm:rounded-2xl sm:px-5 sm:py-3.5"
             >
-              <div className="flex items-center gap-3">
+              <div className="flex min-w-0 items-center gap-2.5">
                 <MessageSquareText className="h-4 w-4 shrink-0 text-[#2095D3]" />
-                <div>
-                  <p className="text-xs font-bold text-[#0F172A] sm:text-sm">
-                    Others — Device Not Listed
+                <div className="min-w-0">
+                  <p className="truncate text-xs font-bold text-[#0F172A] sm:text-sm">
+                    Other brand — Device not listed
                   </p>
-                  <p className="text-[11px] text-[#64748B] sm:text-xs">
-                    Detail your device for a custom agent offer
+                  <p className="truncate text-[11px] text-[#64748B]">
+                    Submit unlisted phone details for an agent quote
                   </p>
                 </div>
               </div>
-              <span className="shrink-0 font-mono text-[11px] font-semibold text-[#187BB2] sm:text-xs">
-                Reply by agent &rarr;
+              <span className="shrink-0 font-mono text-[11px] font-semibold text-[#187BB2]">
+                Quote &rarr;
               </span>
             </button>
           </section>
         )}
 
-        {/* STEPS 2..7 */}
-        {currentStep >= 2 && (
-          <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-12 lg:gap-10">
-            <div className="lg:col-span-8">
-              <div className="mb-3 hidden lg:block">
-                <button
-                  type="button"
-                  onClick={handleStepBack}
-                  className="group inline-flex cursor-pointer items-center gap-1.5 text-xs font-semibold text-[#64748B] transition-colors hover:text-[#0F172A]"
-                >
-                  <ArrowLeft className="h-3.5 w-3.5 transition-transform duration-200 group-hover:-translate-x-0.5" />
-                  <span>
-                    {currentStep === 5 && evalSubStep > 1
-                      ? `Back to ${EVAL_SUBSTEPS[evalSubStep - 2].short}`
-                      : `Back to ${STEPS[currentStep - 2].short}`}
-                  </span>
-                </button>
-              </div>
-
-              {/* STEP 2: MODEL SELECTION */}
+        {/* =================================================================
+            STEPS 2..4 WITH COMPACT MOBILE LAYOUT & DESKTOP SUMMARY RAIL
+           ================================================================= */}
+        {currentStep >= 2 && currentStep <= 4 && (
+          <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12 lg:gap-8">
+            <div className="min-w-0 lg:col-span-8">
+              {/* =============================================================
+                  STEP 2: MODEL
+                 ============================================================= */}
               {currentStep === 2 && (
                 <section key="step-2" className={slideAnimationClass}>
-                  <div className="mb-4 flex items-center justify-between gap-3">
-                    <h1 className="font-['Plus_Jakarta_Sans'] text-xl font-bold tracking-[-0.03em] text-[#0F172A] sm:text-3xl">
-                      Select {selectedBrand?.name} model
-                    </h1>
+                  <div className="mb-2.5 flex items-center justify-between gap-2 sm:mb-3.5">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={handleStepBack}
+                        aria-label="Back to Brand"
+                        className="btn-press flex h-8.5 w-8.5 shrink-0 cursor-pointer items-center justify-center rounded-full border border-[#CBD5E1] bg-white text-[#0F172A] hover:border-[#2095D3]"
+                      >
+                        <ArrowLeft className="h-4 w-4" />
+                      </button>
+                      <h1 className="truncate font-['Plus_Jakarta_Sans'] text-lg font-extrabold tracking-[-0.03em] text-[#0F172A] sm:text-2xl">
+                        Select {selectedBrand?.name} model
+                      </h1>
+                    </div>
+
                     <button
                       type="button"
                       onClick={() => navigateToStep(1)}
-                      className="btn-press shrink-0 cursor-pointer rounded-full border border-[#CBD5E1] bg-white px-3 py-1.5 text-[11px] font-semibold text-[#0F172A] hover:border-[#2095D3] sm:text-xs"
+                      className="btn-press shrink-0 cursor-pointer rounded-full border border-[#CBD5E1] bg-white px-3 py-1 text-[11px] font-semibold text-[#0F172A] hover:border-[#2095D3]"
                     >
-                      Change Brand
+                      {selectedBrand?.name ?? 'Brand'}
                     </button>
                   </div>
 
-                  <div className="mb-4 space-y-2.5">
+                  {/* Compact Search + Series Filter */}
+                  <div className="mb-2.5 space-y-2 sm:mb-3.5">
                     <div className="relative">
                       <label htmlFor="model-search" className="sr-only">
                         Search models
@@ -918,14 +791,14 @@ export const SellPage: React.FC = () => {
                         value={modelQuery}
                         onChange={(e) => setModelQuery(e.target.value)}
                         placeholder={`Search ${selectedBrand?.name ?? ''} models...`}
-                        className="h-11 w-full rounded-xl border border-[#CBD5E1] bg-white pr-9 pl-10 text-sm text-[#0F172A] placeholder:text-slate-400 focus:border-[#2095D3] focus:outline-none sm:rounded-2xl"
+                        className="h-10 w-full rounded-xl border border-[#CBD5E1] bg-white pr-9 pl-9.5 text-base text-[#0F172A] placeholder:text-slate-400 focus:border-[#2095D3] focus:outline-none sm:h-11 sm:text-sm"
                       />
                       {modelQuery && (
                         <button
                           type="button"
                           onClick={() => setModelQuery('')}
                           aria-label="Clear search"
-                          className="absolute top-1/2 right-2.5 flex h-7 w-7 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full text-[#64748B] hover:bg-slate-100"
+                          className="absolute top-1/2 right-2 flex h-7 w-7 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full text-[#64748B] hover:bg-slate-100"
                         >
                           <X className="h-4 w-4" />
                         </button>
@@ -933,11 +806,11 @@ export const SellPage: React.FC = () => {
                     </div>
 
                     {!modelQuery && availableSeries.length > 1 && (
-                      <div className="flex gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                      <div className="flex gap-1.5 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                         <button
                           type="button"
                           onClick={() => setSeriesFilter('all')}
-                          className={`shrink-0 cursor-pointer rounded-full px-3 py-1.5 text-xs font-semibold ${
+                          className={`shrink-0 cursor-pointer rounded-full px-3 py-1 text-[11px] font-semibold ${
                             seriesFilter === 'all'
                               ? 'bg-[#2095D3] text-white'
                               : 'border border-[#E2E8F0] bg-white text-[#64748B]'
@@ -950,7 +823,7 @@ export const SellPage: React.FC = () => {
                             key={series}
                             type="button"
                             onClick={() => setSeriesFilter(series)}
-                            className={`shrink-0 cursor-pointer rounded-full px-3 py-1.5 text-xs font-semibold ${
+                            className={`shrink-0 cursor-pointer rounded-full px-3 py-1 text-[11px] font-semibold ${
                               seriesFilter === series
                                 ? 'bg-[#2095D3] text-white'
                                 : 'border border-[#E2E8F0] bg-white text-[#64748B]'
@@ -963,8 +836,9 @@ export const SellPage: React.FC = () => {
                     )}
                   </div>
 
+                  {/* Compact Phone Model Grid — Fits Cleanly on Mobile Viewport */}
                   <div
-                    className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3"
+                    className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3"
                     role="radiogroup"
                     aria-label="Phone models"
                   >
@@ -978,80 +852,132 @@ export const SellPage: React.FC = () => {
                           role="radio"
                           aria-checked={isSelected}
                           onClick={() => handleSelectModel(model.id)}
-                          className={`card-lift group relative flex cursor-pointer flex-col rounded-2xl border bg-white p-3.5 text-left sm:p-4.5 ${
+                          className={`card-lift group relative flex cursor-pointer flex-col justify-between rounded-xl border bg-white p-2.5 text-left sm:rounded-2xl sm:p-3.5 ${
                             isSelected
                               ? 'border-[#2095D3] ring-2 ring-[#2095D3]'
                               : 'border-[#E2E8F0] hover:border-[#2095D3]'
                           }`}
                         >
-                          <div className="my-2 flex h-26 w-full items-center justify-center overflow-hidden sm:h-34">
-                            <img
-                              src={model.image}
-                              alt={model.name}
-                              width={220}
-                              height={220}
-                              loading="lazy"
-                              decoding="async"
-                              className="img-zoom h-full w-full object-contain"
-                            />
+                          <div className="flex items-center justify-between gap-2 sm:my-1.5 sm:h-22 sm:justify-center">
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#F8FAFC] p-1 sm:h-full sm:w-full sm:bg-transparent sm:p-0">
+                              <img
+                                src={model.image}
+                                alt={model.name}
+                                width={140}
+                                height={140}
+                                loading="lazy"
+                                decoding="async"
+                                className="img-zoom h-full w-full object-contain"
+                              />
+                            </div>
+
+                            <div className="text-right sm:hidden">
+                              <span className="block text-[9.5px] font-medium text-[#64748B]">
+                                Up to
+                              </span>
+                              <span className="font-mono text-[11px] font-bold text-[#187BB2] tabular-nums">
+                                {formatAed(maxVal)}
+                              </span>
+                            </div>
                           </div>
 
-                          <p className="line-clamp-1 font-['Plus_Jakarta_Sans'] text-xs font-bold text-[#0F172A] sm:text-sm">
-                            {model.name}
-                          </p>
-                          <p className="mt-0.5 truncate text-[10px] text-[#64748B] sm:text-xs">
-                            {model.storageOptions.map((s) => s.capacity).join(' / ')}
-                          </p>
-                          <p className="mt-2 border-t border-[#F1F5F9] pt-2 font-mono text-[11px] font-bold text-[#187BB2] tabular-nums sm:text-xs">
-                            Up to {formatAed(maxVal)}
-                          </p>
+                          <div className="mt-1.5 sm:mt-2">
+                            <p className="truncate font-['Plus_Jakarta_Sans'] text-xs font-bold text-[#0F172A] sm:text-sm">
+                              {model.name}
+                            </p>
+                            <p className="truncate text-[10px] text-[#64748B] sm:mt-0.5 sm:text-[11px]">
+                              {model.storageOptions.map((s) => s.capacity).join(' · ')}
+                            </p>
+                            <p className="mt-2 hidden border-t border-[#F1F5F9] pt-1.5 font-mono text-xs font-bold text-[#187BB2] tabular-nums sm:block">
+                              Up to {formatAed(maxVal)}
+                            </p>
+                          </div>
                         </button>
                       );
                     })}
-
-                    <button
-                      type="button"
-                      onClick={handleSelectOtherUnlistedDevice}
-                      className="card-lift flex cursor-pointer flex-col items-start justify-between rounded-2xl border border-dashed border-[#CBD5E1] bg-white/60 p-4 text-left hover:border-[#2095D3] hover:bg-white"
-                    >
-                      <MessageSquareText className="h-5 w-5 text-[#2095D3]" />
-                      <div className="mt-4">
-                        <p className="font-['Plus_Jakarta_Sans'] text-xs font-bold text-[#0F172A] sm:text-sm">
-                          Others (Not Listed)
-                        </p>
-                        <p className="mt-1 text-[11px] text-[#64748B]">
-                          Detail your model to an agent
-                        </p>
-                        <p className="mt-2 font-mono text-[11px] font-semibold text-[#187BB2]">
-                          Reply by agent &rarr;
-                        </p>
-                      </div>
-                    </button>
                   </div>
+
+                  <button
+                    type="button"
+                    onClick={handleSelectOtherUnlistedDevice}
+                    className="card-lift mt-2 flex w-full cursor-pointer items-center justify-between gap-2 rounded-xl border border-dashed border-[#CBD5E1] bg-white/80 px-3.5 py-2.5 text-left hover:border-[#2095D3] hover:bg-white sm:mt-3"
+                  >
+                    <span className="flex items-center gap-2 text-xs font-semibold text-[#0F172A]">
+                      <MessageSquareText className="h-4 w-4 shrink-0 text-[#2095D3]" />
+                      <span>Model not listed? Request agent quote</span>
+                    </span>
+                    <span className="shrink-0 font-mono text-[11px] font-semibold text-[#187BB2]">
+                      &rarr;
+                    </span>
+                  </button>
                 </section>
               )}
 
-              {/* STEP 3: STORAGE SELECTION */}
+              {/* =============================================================
+                  STEP 3: STORAGE
+                 ============================================================= */}
               {currentStep === 3 && selectedModel && (
                 <section key="step-3" className={slideAnimationClass}>
-                  <div className="mb-4 sm:mb-5">
-                    <h1 className="font-['Plus_Jakarta_Sans'] text-xl font-bold tracking-[-0.03em] text-[#0F172A] sm:text-3xl">
-                      Select storage
-                    </h1>
-                    <p className="mt-1 text-xs text-[#64748B] sm:text-sm">
-                      {selectedModel.name}
-                    </p>
+                  <div className="mb-3 flex items-center justify-between gap-2 sm:mb-4">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={handleStepBack}
+                        aria-label="Back to Model"
+                        className="btn-press flex h-8.5 w-8.5 shrink-0 cursor-pointer items-center justify-center rounded-full border border-[#CBD5E1] bg-white text-[#0F172A] hover:border-[#2095D3]"
+                      >
+                        <ArrowLeft className="h-4 w-4" />
+                      </button>
+                      <h1 className="truncate font-['Plus_Jakarta_Sans'] text-lg font-extrabold tracking-[-0.03em] text-[#0F172A] sm:text-2xl">
+                        Select storage
+                      </h1>
+                    </div>
+
+                    <span className="font-mono text-[11px] font-semibold text-[#64748B]">
+                      03 / 05
+                    </span>
                   </div>
 
+                  {/* Selected Phone Compact Strip */}
+                  <div className="mb-3 flex items-center justify-between gap-3 rounded-xl border border-[#E2E8F0] bg-white p-2.5 sm:rounded-2xl sm:p-3.5">
+                    <div className="flex min-w-0 items-center gap-2.5">
+                      <img
+                        src={selectedModel.image}
+                        alt={selectedModel.name}
+                        width={44}
+                        height={44}
+                        className="h-10 w-10 shrink-0 rounded-lg bg-[#F8FAFC] object-contain p-1"
+                      />
+                      <div className="min-w-0">
+                        <p className="truncate font-['Plus_Jakarta_Sans'] text-xs font-bold text-[#0F172A] sm:text-sm">
+                          {selectedModel.name}
+                        </p>
+                        <p className="text-[11px] text-[#64748B]">
+                          {selectedBrand?.name} · Choose capacity below
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => navigateToStep(2)}
+                      className="shrink-0 cursor-pointer rounded-full border border-[#E2E8F0] bg-[#F8FAFC] px-2.5 py-1 text-[11px] font-semibold text-[#187BB2] hover:border-[#2095D3]"
+                    >
+                      Change
+                    </button>
+                  </div>
+
+                  {/* Compact Color Swatch Row (Optional) */}
                   {selectedModel.colors.length > 0 && (
-                    <div className="mb-4 rounded-2xl border border-[#E2E8F0] bg-white p-4">
+                    <div className="mb-3 rounded-xl border border-[#E2E8F0] bg-white px-3.5 py-2.5 sm:rounded-2xl sm:p-3.5">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold text-[#64748B]">Color</span>
-                        <span className="font-mono text-xs font-medium text-[#0F172A]">
+                        <span className="text-[11px] font-semibold text-[#64748B]">
+                          Finish (Optional)
+                        </span>
+                        <span className="font-mono text-[11px] font-medium text-[#0F172A]">
                           {selectedColor}
                         </span>
                       </div>
-                      <div className="mt-2.5 flex flex-wrap gap-2">
+                      <div className="mt-2 flex gap-1.5 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-wrap">
                         {selectedModel.colors.map((c) => {
                           const active = selectedColor === c.name;
                           return (
@@ -1059,7 +985,7 @@ export const SellPage: React.FC = () => {
                               key={c.name}
                               type="button"
                               onClick={() => setSelectedColor(c.name)}
-                              className={`btn-press flex cursor-pointer items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium ${
+                              className={`btn-press flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium ${
                                 active
                                   ? 'border-[#2095D3] bg-[#F0F8FD] font-semibold text-[#0F172A]'
                                   : 'border-[#E2E8F0] bg-white text-[#64748B]'
@@ -1067,7 +993,7 @@ export const SellPage: React.FC = () => {
                             >
                               <span
                                 style={{ backgroundColor: c.hex }}
-                                className="h-3 w-3 rounded-full border border-black/15"
+                                className="h-2.5 w-2.5 rounded-full border border-black/15"
                               />
                               <span>{c.name}</span>
                             </button>
@@ -1077,10 +1003,11 @@ export const SellPage: React.FC = () => {
                     </div>
                   )}
 
+                  {/* Storage Capacity Tiles */}
                   <div
-                    className="grid grid-cols-2 gap-3 sm:gap-4"
+                    className="grid grid-cols-2 gap-2.5 sm:gap-3.5"
                     role="radiogroup"
-                    aria-label="Storage capacity"
+                    aria-label="Phone storage capacity"
                   >
                     {selectedModel.storageOptions.map((opt) => {
                       const isSelected = selectedStorage === opt.capacity;
@@ -1092,7 +1019,7 @@ export const SellPage: React.FC = () => {
                           role="radio"
                           aria-checked={isSelected}
                           onClick={() => handleSelectStorage(opt.capacity)}
-                          className={`card-lift flex cursor-pointer items-center justify-between rounded-2xl border bg-white p-4 text-left sm:p-5.5 ${
+                          className={`card-lift flex min-h-[72px] cursor-pointer items-center justify-between rounded-xl border bg-white p-3.5 text-left sm:min-h-[84px] sm:rounded-2xl sm:p-5 ${
                             isSelected
                               ? 'border-[#2095D3] ring-2 ring-[#2095D3]'
                               : 'border-[#E2E8F0] hover:border-[#2095D3]'
@@ -1103,19 +1030,19 @@ export const SellPage: React.FC = () => {
                               {opt.capacity}
                             </p>
                             <p className="mt-0.5 font-mono text-[11px] font-semibold text-[#187BB2] tabular-nums sm:text-xs">
-                              {formatAed(tierMaxPrice)}
+                              Up to {formatAed(tierMaxPrice)}
                             </p>
                           </div>
 
                           <span
-                            className={`flex h-5 w-5 items-center justify-center rounded-full border sm:h-6 sm:w-6 ${
+                            className={`flex h-5.5 w-5.5 shrink-0 items-center justify-center rounded-full border sm:h-6 sm:w-6 ${
                               isSelected
                                 ? 'check-pop border-[#2095D3] bg-[#2095D3] text-white'
                                 : 'border-[#CBD5E1] bg-white'
                             }`}
                           >
                             {isSelected ? (
-                              <Check className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                              <Check className="h-3 w-3" />
                             ) : (
                               <ChevronRight className="h-3.5 w-3.5 text-[#64748B]" />
                             )}
@@ -1127,26 +1054,47 @@ export const SellPage: React.FC = () => {
                 </section>
               )}
 
-              {/* STEP 4: EXACT ARSOUQ CONDITION TIERS */}
+              {/* =============================================================
+                  STEP 4: CONDITION
+                 ============================================================= */}
               {currentStep === 4 && selectedModel && selectedStorage && (
                 <section key="step-4" className={slideAnimationClass}>
-                  <div className="mb-4 sm:mb-5">
-                    <h1 className="font-['Plus_Jakarta_Sans'] text-xl font-bold tracking-[-0.03em] text-[#0F172A] sm:text-3xl">
-                      Select device condition
-                    </h1>
-                    <p className="mt-1 text-xs text-[#64748B] sm:text-sm">
-                      {selectedModel.name} · {selectedStorage}
-                    </p>
+                  <div className="mb-2.5 flex items-center justify-between gap-2 sm:mb-3.5">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={handleStepBack}
+                        aria-label="Back to Storage"
+                        className="btn-press flex h-8.5 w-8.5 shrink-0 cursor-pointer items-center justify-center rounded-full border border-[#CBD5E1] bg-white text-[#0F172A] hover:border-[#2095D3]"
+                      >
+                        <ArrowLeft className="h-4 w-4" />
+                      </button>
+                      <div className="min-w-0">
+                        <h1 className="truncate font-['Plus_Jakarta_Sans'] text-lg font-extrabold tracking-[-0.03em] text-[#0F172A] sm:text-2xl">
+                          Select condition
+                        </h1>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setShowInspectionTips(true)}
+                      className="btn-press inline-flex shrink-0 cursor-pointer items-center gap-1 rounded-full border border-[#CBD5E1] bg-white px-2.5 py-1 text-[11px] font-semibold text-[#187BB2] hover:border-[#2095D3]"
+                    >
+                      <CircleHelp className="h-3.5 w-3.5" />
+                      <span>How to check</span>
+                    </button>
                   </div>
 
-                  <div className="space-y-2.5" role="radiogroup" aria-label="Device condition">
+                  {/* Compact All-7-Tiers List — Designed to Fit Mobile Screen Without Heavy Scroll */}
+                  <div className="space-y-1.5 sm:space-y-2" role="radiogroup" aria-label="Phone condition">
                     {CONDITION_TIERS.map((tier) => {
                       const isSelected = selectedCondition === tier.id;
                       const previewVal = calculateValuation(
                         selectedModel,
                         selectedStorage,
                         tier.id,
-                        INITIAL_EVALUATION
+                        1
                       );
 
                       return (
@@ -1156,891 +1104,72 @@ export const SellPage: React.FC = () => {
                           role="radio"
                           aria-checked={isSelected}
                           onClick={() => handleSelectCondition(tier.id)}
-                          className={`card-lift group flex w-full cursor-pointer items-center justify-between gap-3 rounded-2xl border bg-white p-4 text-left sm:p-5 ${
+                          className={`card-lift group flex w-full cursor-pointer items-center justify-between gap-2.5 rounded-xl border bg-white px-3 py-2.5 text-left sm:rounded-2xl sm:px-4 sm:py-3.5 ${
                             isSelected
-                              ? 'border-[#2095D3] ring-2 ring-[#2095D3]'
+                              ? 'border-[#2095D3] bg-[#F8FCFF] ring-2 ring-[#2095D3]'
                               : 'border-[#E2E8F0] hover:border-[#2095D3]'
                           }`}
                         >
-                          <div className="min-w-0 flex-1">
-                            <div className="flex flex-wrap items-center justify-between gap-2">
-                              <h2 className="font-['Plus_Jakarta_Sans'] text-sm font-bold text-[#0F172A] sm:text-base">
+                          <div className="flex min-w-0 flex-1 items-start gap-2.5">
+                            <span
+                              style={{ backgroundColor: tier.indicatorHex }}
+                              className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full"
+                            />
+                            <div className="min-w-0 flex-1">
+                              <h2 className="truncate font-['Plus_Jakarta_Sans'] text-[13px] font-bold text-[#0F172A] sm:text-sm">
                                 {tier.title}
                               </h2>
-                              <div className="flex items-center gap-2">
-                                {tier.deductionAed !== null && tier.deductionAed > 0 && (
-                                  <span className="rounded-full bg-[#F6F8FB] px-2 py-0.5 font-mono text-[10px] font-medium text-[#64748B]">
-                                    -AED {tier.deductionAed.toLocaleString('en-US')}
-                                  </span>
-                                )}
-                                <span className="font-mono text-sm font-bold text-[#187BB2] tabular-nums sm:text-base">
-                                  {tier.deductionAed === null
-                                    ? 'Reply by agent'
-                                    : formatAed(previewVal.finalEstimateAed)}
-                                </span>
-                              </div>
-                            </div>
-
-                            {tier.id === 'zero-scratch' ? (
-                              <ul className="mt-2 grid grid-cols-1 gap-1 sm:grid-cols-2">
-                                {tier.criteria.map((bullet) => (
-                                  <li
-                                    key={bullet}
-                                    className="flex items-center gap-1.5 text-xs text-[#475569]"
-                                  >
-                                    <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#2095D3]" />
-                                    <span>{bullet}</span>
-                                  </li>
-                                ))}
-                              </ul>
-                            ) : (
-                              <p className="mt-1 text-xs leading-relaxed text-[#64748B]">
+                              <p className="line-clamp-1 text-[11px] leading-snug text-[#64748B] sm:line-clamp-none sm:text-xs">
                                 {tier.summary}
                               </p>
-                            )}
+                            </div>
                           </div>
 
-                          <ChevronRight className="h-4 w-4 shrink-0 text-[#64748B] transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-[#2095D3]" />
+                          <div className="flex shrink-0 items-center gap-1.5 text-right sm:gap-2.5">
+                            <div>
+                              <span className="block font-mono text-xs font-extrabold text-[#187BB2] tabular-nums sm:text-sm">
+                                {tier.deductionAed === null
+                                  ? 'Agent quote'
+                                  : formatAed(previewVal.unitEstimateAed)}
+                              </span>
+                              <span className="block font-mono text-[10px] font-medium text-[#64748B]">
+                                {tier.deductionAed === null
+                                  ? 'Custom review'
+                                  : tier.deductionAed === 0
+                                    ? 'Full value'
+                                    : `-AED ${tier.deductionAed.toLocaleString('en-US')}`}
+                              </span>
+                            </div>
+                            <ChevronRight className="h-4 w-4 text-[#94A3B8] transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-[#2095D3]" />
+                          </div>
                         </button>
                       );
                     })}
                   </div>
-                </section>
-              )}
-
-              {/* STEP 5: 4-PART STEP-BY-STEP VERIFICATION */}
-              {currentStep === 5 && selectedModel && (
-                <section key="step-5" className="space-y-4">
-                  <div className="grid grid-cols-4 gap-1.5 rounded-xl border border-[#E2E8F0] bg-white p-1.5 sm:rounded-2xl sm:p-2">
-                    {EVAL_SUBSTEPS.map((subItem) => {
-                      const active = evalSubStep === subItem.sub;
-                      const done = evalSubStep > subItem.sub;
-                      return (
-                        <button
-                          key={subItem.sub}
-                          type="button"
-                          onClick={() => navigateToStep(5, subItem.sub)}
-                          className={`flex cursor-pointer items-center justify-center gap-1 rounded-lg px-2 py-2 text-[11px] font-semibold transition-colors sm:rounded-xl sm:text-xs ${
-                            active
-                              ? 'bg-[#2095D3] text-white'
-                              : done
-                                ? 'bg-[#F0F8FD] text-[#187BB2]'
-                                : 'text-[#64748B] hover:text-[#0F172A]'
-                          }`}
-                        >
-                          <span className="font-mono text-[10px]">{done ? '✓' : subItem.sub}</span>
-                          <span className="truncate">{subItem.short}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {evalSubStep === 1 && (
-                    <div key="eval-1" className={slideAnimationClass}>
-                      <h1 className="mb-3.5 font-['Plus_Jakarta_Sans'] text-xl font-bold tracking-[-0.03em] text-[#0F172A] sm:text-2xl">
-                        Battery health
-                      </h1>
-                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                        {(
-                          [
-                            {
-                              id: '90-above' as BatteryHealthTier,
-                              title: '90% or Above',
-                              sub: 'Zero Scratch full value',
-                              badge: 'AED 0',
-                            },
-                            {
-                              id: '85-89' as BatteryHealthTier,
-                              title: '85% – 89%',
-                              sub: 'Small / Medium Scratch tier',
-                              badge: '85%+',
-                            },
-                            {
-                              id: 'below-85' as BatteryHealthTier,
-                              title: 'Below 85%',
-                              sub: 'Service battery tier',
-                              badge: '-AED 400 min',
-                            },
-                          ] as const
-                        ).map((opt) => {
-                          const active = evaluation.batteryHealth === opt.id;
-                          return (
-                            <button
-                              key={opt.id}
-                              type="button"
-                              onClick={() => handleSelectBattery(opt.id)}
-                              className={`card-lift flex cursor-pointer items-center justify-between rounded-2xl border bg-white p-4 text-left sm:flex-col sm:items-start sm:p-5 ${
-                                active
-                                  ? 'border-[#2095D3] ring-2 ring-[#2095D3]'
-                                  : 'border-[#E2E8F0] hover:border-[#2095D3]'
-                              }`}
-                            >
-                              <div className="flex items-center gap-3 sm:w-full sm:justify-between">
-                                <BatteryCharging className="h-5 w-5 shrink-0 text-[#2095D3]" />
-                                <span className="hidden rounded-full bg-[#F6F8FB] px-2 py-0.5 font-mono text-[10px] font-semibold text-[#64748B] sm:inline-block">
-                                  {opt.badge}
-                                </span>
-                              </div>
-                              <div className="ml-3 flex-1 sm:mt-4 sm:ml-0">
-                                <p className="font-['Plus_Jakarta_Sans'] text-sm font-bold text-[#0F172A]">
-                                  {opt.title}
-                                </p>
-                                <p className="mt-0.5 text-xs text-[#64748B]">{opt.sub}</p>
-                              </div>
-                              <ChevronRight className="h-4 w-4 shrink-0 text-[#64748B] sm:hidden" />
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-
-                  {evalSubStep === 2 && (
-                    <div key="eval-2" className={slideAnimationClass}>
-                      <h1 className="mb-3.5 font-['Plus_Jakarta_Sans'] text-xl font-bold tracking-[-0.03em] text-[#0F172A] sm:text-2xl">
-                        Display glass
-                      </h1>
-                      <div className="space-y-2.5">
-                        {(
-                          [
-                            {
-                              id: 'no-scratch' as ScreenStatus,
-                              title: 'No Scratch on Display',
-                              sub: 'Flawless front screen',
-                              tag: 'AED 0',
-                            },
-                            {
-                              id: 'small-scratch' as ScreenStatus,
-                              title: 'Small Scratch',
-                              sub: 'Light hairline wear',
-                              tag: '-AED 150',
-                            },
-                            {
-                              id: 'medium-deep-scratch' as ScreenStatus,
-                              title: 'Medium or Deep Scratch',
-                              sub: 'Visible screen scratches',
-                              tag: '-AED 400',
-                            },
-                            {
-                              id: 'display-crack' as ScreenStatus,
-                              title: 'Display Crack',
-                              sub: 'Cracked glass, screen working',
-                              tag: '-AED 700',
-                            },
-                            {
-                              id: 'display-not-working' as ScreenStatus,
-                              title: 'Display Not Working',
-                              sub: 'Dead touch or damaged OLED',
-                              tag: '-AED 1,000',
-                            },
-                          ] as const
-                        ).map((opt) => {
-                          const active = evaluation.screenStatus === opt.id;
-                          return (
-                            <button
-                              key={opt.id}
-                              type="button"
-                              onClick={() => handleSelectScreen(opt.id)}
-                              className={`card-lift flex w-full cursor-pointer items-center justify-between gap-3 rounded-2xl border bg-white p-4 text-left ${
-                                active
-                                  ? 'border-[#2095D3] ring-2 ring-[#2095D3]'
-                                  : 'border-[#E2E8F0] hover:border-[#2095D3]'
-                              }`}
-                            >
-                              <div className="flex items-center gap-3">
-                                <Smartphone className="h-4 w-4 shrink-0 text-[#2095D3]" />
-                                <div>
-                                  <p className="font-['Plus_Jakarta_Sans'] text-sm font-bold text-[#0F172A]">
-                                    {opt.title}
-                                  </p>
-                                  <p className="text-xs text-[#64748B]">{opt.sub}</p>
-                                </div>
-                              </div>
-                              <span className="shrink-0 font-mono text-xs font-semibold text-[#187BB2]">
-                                {opt.tag}
-                              </span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-
-                  {evalSubStep === 3 && (
-                    <div key="eval-3" className={slideAnimationClass}>
-                      <h1 className="mb-3.5 font-['Plus_Jakarta_Sans'] text-xl font-bold tracking-[-0.03em] text-[#0F172A] sm:text-2xl">
-                        Body &amp; parts history
-                      </h1>
-                      <div className="space-y-2.5">
-                        {(
-                          [
-                            {
-                              id: 'no-scratch-original' as BodyPartsStatus,
-                              title: 'No Scratch · Original Parts',
-                              sub: 'Spotless body, no parts replaced',
-                              tag: 'AED 0',
-                            },
-                            {
-                              id: 'small-body-scratch' as BodyPartsStatus,
-                              title: 'Small Scratch on Body',
-                              sub: 'Faint edge wear, original parts',
-                              tag: '-AED 150',
-                            },
-                            {
-                              id: 'body-dent-scratch' as BodyPartsStatus,
-                              title: 'Small Dent / Medium Scratch',
-                              sub: 'Visible body nick or scratch',
-                              tag: '-AED 400',
-                            },
-                            {
-                              id: 'genuine-part-changed' as BodyPartsStatus,
-                              title: 'Parts Change (Genuine Part)',
-                              sub: 'One genuine official part replaced',
-                              tag: '-AED 500',
-                            },
-                            {
-                              id: 'back-glass-broken-dent' as BodyPartsStatus,
-                              title: 'Back Glass Broken / Frame Dent',
-                              sub: 'Cracked back panel or frame dent',
-                              tag: '-AED 700',
-                            },
-                            {
-                              id: 'unknown-unofficial-part' as BodyPartsStatus,
-                              title: 'Unofficial / Unknown Parts',
-                              sub: 'Non-genuine part replaced',
-                              tag: '-AED 1,000',
-                            },
-                          ] as const
-                        ).map((opt) => {
-                          const active = evaluation.bodyPartsStatus === opt.id;
-                          return (
-                            <button
-                              key={opt.id}
-                              type="button"
-                              onClick={() => handleSelectBodyParts(opt.id)}
-                              className={`card-lift flex w-full cursor-pointer items-center justify-between gap-3 rounded-2xl border bg-white p-4 text-left ${
-                                active
-                                  ? 'border-[#2095D3] ring-2 ring-[#2095D3]'
-                                  : 'border-[#E2E8F0] hover:border-[#2095D3]'
-                              }`}
-                            >
-                              <div className="flex items-center gap-3">
-                                <Layers className="h-4 w-4 shrink-0 text-[#2095D3]" />
-                                <div>
-                                  <p className="font-['Plus_Jakarta_Sans'] text-sm font-bold text-[#0F172A]">
-                                    {opt.title}
-                                  </p>
-                                  <p className="text-xs text-[#64748B]">{opt.sub}</p>
-                                </div>
-                              </div>
-                              <span className="shrink-0 font-mono text-xs font-semibold text-[#187BB2]">
-                                {opt.tag}
-                              </span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-
-                  {evalSubStep === 4 && (
-                    <div key="eval-4" className={slideAnimationClass}>
-                      <h1 className="mb-3.5 font-['Plus_Jakarta_Sans'] text-xl font-bold tracking-[-0.03em] text-[#0F172A] sm:text-2xl">
-                        Device &amp; camera function
-                      </h1>
-                      <div className="space-y-2.5">
-                        {(
-                          [
-                            {
-                              id: 'full-working' as FunctionalStatus,
-                              title: 'Full Working',
-                              sub: 'Face ID / Touch ID, cameras, audio, and network work',
-                              tag: 'AED 0',
-                            },
-                            {
-                              id: 'mic-speaker-camera-dot' as FunctionalStatus,
-                              title: 'Mic, Speaker, or Camera Spot',
-                              sub: 'Minor audio or camera black dot; core network works',
-                              tag: '-AED 700',
-                            },
-                            {
-                              id: 'faceid-hardware-issue' as FunctionalStatus,
-                              title: 'Face ID / Hardware Issue',
-                              sub: 'Biometrics not working or major sensor fault',
-                              tag: '-AED 1,000',
-                            },
-                            {
-                              id: 'other-agent-issue' as FunctionalStatus,
-                              title: 'Others — Unlisted Issue',
-                              sub: 'Detail your phone to our agent for the best price',
-                              tag: 'Reply by agent',
-                            },
-                          ] as const
-                        ).map((opt) => {
-                          const active = evaluation.functionalStatus === opt.id;
-                          return (
-                            <button
-                              key={opt.id}
-                              type="button"
-                              onClick={() => handleSelectFunctionality(opt.id)}
-                              className={`card-lift flex w-full cursor-pointer items-center justify-between gap-3 rounded-2xl border bg-white p-4 text-left ${
-                                active
-                                  ? 'border-[#2095D3] ring-2 ring-[#2095D3]'
-                                  : 'border-[#E2E8F0] hover:border-[#2095D3]'
-                              }`}
-                            >
-                              <div className="flex items-center gap-3">
-                                <Cpu className="h-4 w-4 shrink-0 text-[#2095D3]" />
-                                <div>
-                                  <p className="font-['Plus_Jakarta_Sans'] text-sm font-bold text-[#0F172A]">
-                                    {opt.title}
-                                  </p>
-                                  <p className="text-xs text-[#64748B]">{opt.sub}</p>
-                                </div>
-                              </div>
-                              <span className="shrink-0 font-mono text-xs font-semibold text-[#187BB2]">
-                                {opt.tag}
-                              </span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-                </section>
-              )}
-
-              {/* STEP 6: PRICE ESTIMATION OR AGENT QUOTE */}
-              {currentStep === 6 && liveValuation && (
-                <section key="step-6" className={`${slideAnimationClass} space-y-5`}>
-                  <h1 className="font-['Plus_Jakarta_Sans'] text-xl font-bold tracking-[-0.03em] text-[#0F172A] sm:text-3xl">
-                    {liveValuation.isAgentQuote
-                      ? 'Detail your device for our agent'
-                      : 'Estimated buyback price'}
-                  </h1>
-
-                  {liveValuation.isAgentQuote ? (
-                    <div className="rounded-3xl border border-[#E2E8F0] bg-white p-6 sm:p-8">
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-[#F0F8FD] px-3 py-1 font-mono text-xs font-semibold text-[#187BB2]">
-                        <MessageSquareText className="h-3.5 w-3.5" />
-                        Reply by agent
-                      </span>
-
-                      {isCustomUnlistedDevice && (
-                        <div className="mt-4">
-                          <label
-                            htmlFor="custom-device-name"
-                            className="block text-xs font-semibold text-[#0F172A]"
-                          >
-                            Brand, Model &amp; Storage
-                          </label>
-                          <input
-                            id="custom-device-name"
-                            type="text"
-                            value={customDeviceName}
-                            onChange={(e) => setCustomDeviceName(e.target.value)}
-                            placeholder="e.g. Honor Magic6 Pro 512GB"
-                            className="mt-1.5 h-11 w-full rounded-xl border border-[#CBD5E1] bg-white px-4 text-sm text-[#0F172A] focus:border-[#2095D3] focus:outline-none"
-                          />
-                        </div>
-                      )}
-
-                      <div className="mt-4">
-                        <label
-                          htmlFor="agent-issue-details"
-                          className="block text-xs font-semibold text-[#0F172A]"
-                        >
-                          Device Condition Details
-                        </label>
-                        <textarea
-                          id="agent-issue-details"
-                          rows={4}
-                          value={evaluation.agentIssueDetails}
-                          onChange={(e) =>
-                            setEvaluation((p) => ({
-                              ...p,
-                              agentIssueDetails: e.target.value,
-                            }))
-                          }
-                          placeholder="Describe condition, battery percentage, or any parts replaced..."
-                          className="mt-1.5 w-full rounded-xl border border-[#CBD5E1] bg-white p-4 text-sm text-[#0F172A] focus:border-[#2095D3] focus:outline-none"
-                        />
-                      </div>
-
-                      <div className="mt-6 flex justify-end">
-                        <button
-                          type="button"
-                          onClick={() => navigateToStep(7)}
-                          className="btn-press inline-flex cursor-pointer items-center gap-2 rounded-full bg-[#2095D3] px-7 py-3.5 text-xs font-bold text-white uppercase hover:bg-[#187BB2]"
-                        >
-                          <span>Continue</span>
-                          <ArrowRight className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="overflow-hidden rounded-3xl bg-[#0B1120] text-white shadow-[0_16px_40px_rgba(15,23,42,0.12)]">
-                        <div className="grid grid-cols-1 items-center gap-6 p-6 sm:p-8 md:grid-cols-12">
-                          <div className="md:col-span-8">
-                            <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 font-mono text-[11px] font-medium text-slate-200">
-                              <Sparkles className="h-3.5 w-3.5 text-[#5CC2F8]" />
-                              <span>{liveValuation.appliedTierTitle} · 7-Day Lock</span>
-                            </div>
-
-                            <p className="mt-4 font-['Plus_Jakarta_Sans'] text-4xl font-extrabold tracking-[-0.04em] text-white sm:text-5xl">
-                              <AnimatedAed amount={liveValuation.finalEstimateAed} />
-                            </p>
-
-                            <p className="mt-2 text-xs text-slate-300 sm:text-sm">
-                              {selectedBrand?.name} {selectedModel?.name} · {selectedStorage} ·{' '}
-                              {selectedColor}
-                            </p>
-
-                            <div className="mt-6 flex flex-wrap items-center gap-2.5">
-                              <button
-                                type="button"
-                                onClick={() => navigateToStep(7)}
-                                className="btn-press inline-flex cursor-pointer items-center gap-2 rounded-full bg-[#2095D3] px-7 py-3.5 text-xs font-bold text-white uppercase hover:bg-[#187BB2]"
-                              >
-                                <span>Proceed to Sell</span>
-                                <ArrowRight className="h-4 w-4" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => navigateToStep(4)}
-                                className="btn-press inline-flex cursor-pointer items-center rounded-full border border-white/20 px-5 py-3.5 text-xs font-semibold text-white hover:border-white"
-                              >
-                                Edit Condition
-                              </button>
-                            </div>
-                          </div>
-
-                          {selectedModel && (
-                            <div className="hidden justify-center md:col-span-4 md:flex">
-                              <div className="flex h-40 w-36 items-center justify-center rounded-2xl bg-white p-3.5">
-                                <img
-                                  src={selectedModel.image}
-                                  alt={selectedModel.name}
-                                  width={160}
-                                  height={160}
-                                  className="h-full w-full object-contain"
-                                />
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="rounded-3xl border border-[#E2E8F0] bg-white p-5 sm:p-7">
-                        <h2 className="border-b border-[#E2E8F0] pb-3 font-['Plus_Jakarta_Sans'] text-sm font-bold text-[#0F172A]">
-                          Price Breakdown
-                        </h2>
-
-                        <div className="mt-2 divide-y divide-[#F1F5F9]">
-                          {liveValuation.lineItems.map((item) => (
-                            <div
-                              key={item.id}
-                              className="flex items-start justify-between gap-4 py-3 text-sm"
-                            >
-                              <div>
-                                <p className="font-semibold text-[#0F172A]">{item.label}</p>
-                                {item.detail && (
-                                  <p className="mt-0.5 text-xs text-[#64748B]">{item.detail}</p>
-                                )}
-                              </div>
-                              <span
-                                className={`shrink-0 font-mono font-bold tabular-nums ${
-                                  item.kind === 'deduction'
-                                    ? 'text-[#DC2626]'
-                                    : 'text-[#0F172A]'
-                                }`}
-                              >
-                                {item.amountAed >= 0
-                                  ? formatAed(item.amountAed)
-                                  : `-${formatAed(Math.abs(item.amountAed))}`}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-
-                        <div className="mt-2 flex items-center justify-between border-t border-[#0F172A] pt-3.5">
-                          <span className="font-['Plus_Jakarta_Sans'] text-sm font-bold text-[#0F172A]">
-                            Final Offer
-                          </span>
-                          <span className="font-mono text-lg font-extrabold text-[#187BB2] tabular-nums">
-                            {formatAed(liveValuation.finalEstimateAed)}
-                          </span>
-                        </div>
-                      </div>
-                    </>
-                  )}
-                </section>
-              )}
-
-              {/* STEP 7: SELLING SUBMISSION */}
-              {currentStep === 7 && liveValuation && (
-                <section key="step-7" className={slideAnimationClass}>
-                  <h1 className="mb-4 font-['Plus_Jakarta_Sans'] text-xl font-bold tracking-[-0.03em] text-[#0F172A] sm:text-3xl">
-                    Pickup &amp; payout details
-                  </h1>
-
-                  <form onSubmit={validateAndSubmit} noValidate className="space-y-4">
-                    <div className="rounded-2xl border border-[#E2E8F0] bg-white p-5 sm:rounded-3xl sm:p-6">
-                      <h2 className="font-['Plus_Jakarta_Sans'] text-sm font-bold text-[#0F172A]">
-                        Contact Details
-                      </h2>
-                      <div className="mt-3.5 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                        <div className="sm:col-span-2">
-                          <label
-                            htmlFor="seller-name"
-                            className="block text-xs font-semibold text-[#0F172A]"
-                          >
-                            Full Name
-                          </label>
-                          <input
-                            id="seller-name"
-                            type="text"
-                            value={fullName}
-                            onChange={(e) => setFullName(e.target.value)}
-                            placeholder="e.g. Rashid Al Maktoum"
-                            className="mt-1 h-11 w-full rounded-xl border border-[#CBD5E1] bg-white px-4 text-sm text-[#0F172A] focus:border-[#2095D3] focus:outline-none"
-                          />
-                          {formErrors.fullName && (
-                            <p className="mt-1 text-xs font-medium text-[#DC2626]">
-                              {formErrors.fullName}
-                            </p>
-                          )}
-                        </div>
-
-                        <div>
-                          <label
-                            htmlFor="seller-phone"
-                            className="block text-xs font-semibold text-[#0F172A]"
-                          >
-                            UAE Mobile / WhatsApp
-                          </label>
-                          <input
-                            id="seller-phone"
-                            type="tel"
-                            value={phoneUae}
-                            onChange={(e) => setPhoneUae(e.target.value)}
-                            placeholder="+971 50 123 4567"
-                            className="mt-1 h-11 w-full rounded-xl border border-[#CBD5E1] bg-white px-4 text-sm text-[#0F172A] focus:border-[#2095D3] focus:outline-none"
-                          />
-                          {formErrors.phoneUae && (
-                            <p className="mt-1 text-xs font-medium text-[#DC2626]">
-                              {formErrors.phoneUae}
-                            </p>
-                          )}
-                        </div>
-
-                        <div>
-                          <label
-                            htmlFor="seller-email"
-                            className="block text-xs font-semibold text-[#0F172A]"
-                          >
-                            Email Address
-                          </label>
-                          <input
-                            id="seller-email"
-                            type="email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            placeholder="name@domain.ae"
-                            className="mt-1 h-11 w-full rounded-xl border border-[#CBD5E1] bg-white px-4 text-sm text-[#0F172A] focus:border-[#2095D3] focus:outline-none"
-                          />
-                          {formErrors.email && (
-                            <p className="mt-1 text-xs font-medium text-[#DC2626]">
-                              {formErrors.email}
-                            </p>
-                          )}
-                        </div>
-
-                        <div className="sm:col-span-2">
-                          <span className="block text-xs font-semibold text-[#0F172A]">
-                            Device Region
-                          </span>
-                          <div className="mt-1.5 flex flex-wrap gap-2">
-                            {(['UAE TDRA', 'International'] as const).map((reg) => (
-                              <button
-                                key={reg}
-                                type="button"
-                                onClick={() => setDeviceSpecRegion(reg)}
-                                className={`btn-press cursor-pointer rounded-full border px-4 py-1.5 text-xs font-semibold ${
-                                  deviceSpecRegion === reg
-                                    ? 'border-[#2095D3] bg-[#2095D3] text-white'
-                                    : 'border-[#CBD5E1] bg-white text-[#64748B]'
-                                }`}
-                              >
-                                {reg}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="rounded-2xl border border-[#E2E8F0] bg-white p-5 sm:rounded-3xl sm:p-6">
-                      <div className="flex items-center gap-2">
-                        <MapPin className="h-4 w-4 text-[#2095D3]" />
-                        <h2 className="font-['Plus_Jakarta_Sans'] text-sm font-bold text-[#0F172A]">
-                          Collection Address
-                        </h2>
-                      </div>
-
-                      <div className="mt-3.5 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                        <div>
-                          <label
-                            htmlFor="seller-emirate"
-                            className="block text-xs font-semibold text-[#0F172A]"
-                          >
-                            Emirate
-                          </label>
-                          <select
-                            id="seller-emirate"
-                            value={emirate}
-                            onChange={(e) => setEmirate(e.target.value as UAEEmirate)}
-                            className="mt-1 h-11 w-full rounded-xl border border-[#CBD5E1] bg-white px-4 text-sm text-[#0F172A] focus:border-[#2095D3] focus:outline-none"
-                          >
-                            {UAE_EMIRATES.map((em) => (
-                              <option key={em} value={em}>
-                                {em}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-
-                        <div>
-                          <label
-                            htmlFor="seller-area"
-                            className="block text-xs font-semibold text-[#0F172A]"
-                          >
-                            Community &amp; Street
-                          </label>
-                          <input
-                            id="seller-area"
-                            type="text"
-                            value={areaAndStreet}
-                            onChange={(e) => setAreaAndStreet(e.target.value)}
-                            placeholder="e.g. Dubai Marina, Al Marsa St"
-                            className="mt-1 h-11 w-full rounded-xl border border-[#CBD5E1] bg-white px-4 text-sm text-[#0F172A] focus:border-[#2095D3] focus:outline-none"
-                          />
-                          {formErrors.areaAndStreet && (
-                            <p className="mt-1 text-xs font-medium text-[#DC2626]">
-                              {formErrors.areaAndStreet}
-                            </p>
-                          )}
-                        </div>
-
-                        <div className="sm:col-span-2">
-                          <label
-                            htmlFor="seller-building"
-                            className="block text-xs font-semibold text-[#0F172A]"
-                          >
-                            Building / Villa &amp; Unit
-                          </label>
-                          <input
-                            id="seller-building"
-                            type="text"
-                            value={buildingOrVilla}
-                            onChange={(e) => setBuildingOrVilla(e.target.value)}
-                            placeholder="e.g. Marina Gate 1, Apt 1804"
-                            className="mt-1 h-11 w-full rounded-xl border border-[#CBD5E1] bg-white px-4 text-sm text-[#0F172A] focus:border-[#2095D3] focus:outline-none"
-                          />
-                          {formErrors.buildingOrVilla && (
-                            <p className="mt-1 text-xs font-medium text-[#DC2626]">
-                              {formErrors.buildingOrVilla}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="mt-4">
-                        <div className="flex items-center gap-2">
-                          <CalendarClock className="h-4 w-4 text-[#2095D3]" />
-                          <span className="text-xs font-semibold text-[#0F172A]">
-                            Pickup Window
-                          </span>
-                        </div>
-                        <div className="mt-2 grid grid-cols-1 gap-2.5 sm:grid-cols-3">
-                          {(
-                            [
-                              {
-                                id: 'today-evening' as PickupSlot,
-                                day: 'Today',
-                                hours: '6:00 PM – 9:00 PM',
-                              },
-                              {
-                                id: 'tomorrow-morning' as PickupSlot,
-                                day: 'Tomorrow AM',
-                                hours: '10:00 AM – 1:00 PM',
-                              },
-                              {
-                                id: 'tomorrow-evening' as PickupSlot,
-                                day: 'Tomorrow PM',
-                                hours: '5:00 PM – 9:00 PM',
-                              },
-                            ] as const
-                          ).map((slot) => {
-                            const active = pickupSlot === slot.id;
-                            return (
-                              <button
-                                key={slot.id}
-                                type="button"
-                                onClick={() => setPickupSlot(slot.id)}
-                                className={`card-lift cursor-pointer rounded-xl border p-3 text-left ${
-                                  active
-                                    ? 'border-[#2095D3] bg-[#F0F8FD] ring-2 ring-[#2095D3]'
-                                    : 'border-[#E2E8F0] bg-white'
-                                }`}
-                              >
-                                <p className="font-['Plus_Jakarta_Sans'] text-xs font-bold text-[#0F172A]">
-                                  {slot.day}
-                                </p>
-                                <p className="mt-0.5 font-mono text-[11px] text-[#64748B]">
-                                  {slot.hours}
-                                </p>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="rounded-2xl border border-[#E2E8F0] bg-white p-5 sm:rounded-3xl sm:p-6">
-                      <div className="flex items-center gap-2">
-                        <Wallet className="h-4 w-4 text-[#2095D3]" />
-                        <h2 className="font-['Plus_Jakarta_Sans'] text-sm font-bold text-[#0F172A]">
-                          Payout Method
-                        </h2>
-                      </div>
-
-                      <div className="mt-3 grid grid-cols-1 gap-2.5 sm:grid-cols-3">
-                        {(
-                          [
-                            {
-                              id: 'uae-bank-iban' as PayoutMethod,
-                              title: 'UAE Bank IBAN',
-                              desc: 'Instant AED transfer',
-                            },
-                            {
-                              id: 'instant-cash' as PayoutMethod,
-                              title: 'Cash on Pickup',
-                              desc: 'AED notes at handover',
-                            },
-                            {
-                              id: 'digital-wallet' as PayoutMethod,
-                              title: 'Digital Wallet',
-                              desc: 'Instant wallet payout',
-                            },
-                          ] as const
-                        ).map((pm) => {
-                          const active = payoutMethod === pm.id;
-                          return (
-                            <button
-                              key={pm.id}
-                              type="button"
-                              onClick={() => setPayoutMethod(pm.id)}
-                              className={`card-lift cursor-pointer rounded-xl border p-3 text-left ${
-                                active
-                                  ? 'border-[#2095D3] bg-[#F0F8FD] ring-2 ring-[#2095D3]'
-                                  : 'border-[#E2E8F0] bg-white'
-                              }`}
-                            >
-                              <p className="font-['Plus_Jakarta_Sans'] text-xs font-bold text-[#0F172A]">
-                                {pm.title}
-                              </p>
-                              <p className="mt-0.5 text-[11px] text-[#64748B]">{pm.desc}</p>
-                            </button>
-                          );
-                        })}
-                      </div>
-
-                      {payoutMethod === 'uae-bank-iban' && (
-                        <div className="route-enter mt-3.5">
-                          <label
-                            htmlFor="seller-iban"
-                            className="block text-xs font-semibold text-[#0F172A]"
-                          >
-                            UAE IBAN (Optional now)
-                          </label>
-                          <input
-                            id="seller-iban"
-                            type="text"
-                            value={ibanOptional}
-                            onChange={(e) => setIbanOptional(e.target.value)}
-                            placeholder="AE07 0331 2345 6789 0123 456"
-                            className="mt-1 h-11 w-full rounded-xl border border-[#CBD5E1] bg-white px-4 font-mono text-xs text-[#0F172A] focus:border-[#2095D3] focus:outline-none"
-                          />
-                        </div>
-                      )}
-
-                      <div className="mt-3.5">
-                        <label
-                          htmlFor="seller-notes"
-                          className="block text-xs font-semibold text-[#0F172A]"
-                        >
-                          Courier Note (Optional)
-                        </label>
-                        <input
-                          id="seller-notes"
-                          type="text"
-                          value={notes}
-                          onChange={(e) => setNotes(e.target.value)}
-                          placeholder="e.g. Call at gate"
-                          className="mt-1 h-11 w-full rounded-xl border border-[#CBD5E1] bg-white px-4 text-sm text-[#0F172A] focus:border-[#2095D3] focus:outline-none"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="flex flex-col-reverse gap-3 pt-1 sm:flex-row sm:items-center sm:justify-between">
-                      <button
-                        type="button"
-                        onClick={() => navigateToStep(6)}
-                        className="btn-press inline-flex cursor-pointer items-center justify-center gap-2 rounded-full border border-[#CBD5E1] bg-white px-6 py-3 text-xs font-semibold text-[#0F172A]"
-                      >
-                        <ArrowLeft className="h-4 w-4" />
-                        Back
-                      </button>
-
-                      <button
-                        type="submit"
-                        className="btn-press inline-flex cursor-pointer items-center justify-center gap-2 rounded-full bg-[#2095D3] px-8 py-3.5 text-xs font-bold tracking-[0.04em] text-white uppercase shadow-[0_8px_20px_rgba(32,149,211,0.24)] hover:bg-[#187BB2]"
-                      >
-                        <span>
-                          {liveValuation.isAgentQuote
-                            ? 'Submit Request'
-                            : `Confirm ${formatAed(liveValuation.finalEstimateAed)}`}
-                        </span>
-                        <ArrowRight className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </form>
                 </section>
               )}
             </div>
 
-            {/* DESKTOP STICKY SUMMARY RAIL */}
-            <aside className="hidden lg:sticky lg:top-28 lg:col-span-4 lg:block">
-              <div className="overflow-hidden rounded-3xl border border-[#E2E8F0] bg-white p-5.5 shadow-[0_8px_28px_rgba(15,23,42,0.03)]">
-                <div className="flex items-center justify-between border-b border-[#F1F5F9] pb-3">
+            {/* DESKTOP STICKY SUMMARY RAIL (Steps 2–4) */}
+            <aside className="hidden lg:sticky lg:top-22 lg:col-span-4 lg:block">
+              <div className="overflow-hidden rounded-3xl border border-[#E2E8F0] bg-white p-5 shadow-[0_8px_28px_rgba(15,23,42,0.03)]">
+                <div className="flex items-center justify-between border-b border-[#F1F5F9] pb-2.5">
                   <span className="font-mono text-[11px] font-semibold text-[#64748B] uppercase">
-                    Summary
+                    Live Selection
                   </span>
                   <span className="font-mono text-[11px] font-medium text-[#64748B]">
-                    0{currentStep}/07
+                    0{currentStep} / 05
                   </span>
                 </div>
 
-                <div className="my-4 flex h-36 items-center justify-center rounded-2xl bg-[#F6F8FB] p-4">
+                <div className="my-3.5 flex h-32 items-center justify-center rounded-2xl bg-[#F6F8FB] p-3.5">
                   {selectedModel ? (
                     <img
                       key={selectedModel.id}
                       src={selectedModel.image}
                       alt={selectedModel.name}
-                      width={160}
-                      height={160}
+                      width={140}
+                      height={140}
                       className="route-enter h-full w-full object-contain"
                     />
                   ) : selectedBrand ? (
@@ -2048,8 +1177,8 @@ export const SellPage: React.FC = () => {
                       brandId={selectedBrand.id}
                       className={
                         selectedBrand.id === 'google' || selectedBrand.id === 'xiaomi'
-                          ? 'h-12 w-12'
-                          : 'h-8 max-w-[130px]'
+                          ? 'h-11 w-11'
+                          : 'h-7 max-w-[125px]'
                       }
                     />
                   ) : (
@@ -2058,123 +1187,557 @@ export const SellPage: React.FC = () => {
                 </div>
 
                 <dl className="divide-y divide-[#F1F5F9] text-xs">
-                  <div className="flex items-center justify-between py-2.5">
+                  <div className="flex items-center justify-between py-2">
                     <dt className="text-[#64748B]">Brand</dt>
-                    <dd className="flex items-center gap-2 font-semibold text-[#0F172A]">
-                      <span>{selectedBrand ? selectedBrand.name : 'Custom'}</span>
-                      <button
-                        type="button"
-                        onClick={() => navigateToStep(1)}
-                        className="cursor-pointer font-mono text-[10px] text-[#187BB2] underline"
-                      >
-                        Edit
-                      </button>
+                    <dd className="font-semibold text-[#0F172A]">
+                      {selectedBrand ? selectedBrand.name : 'Custom'}
                     </dd>
                   </div>
-
-                  <div className="flex items-center justify-between py-2.5">
+                  <div className="flex items-center justify-between py-2">
                     <dt className="text-[#64748B]">Model</dt>
-                    <dd className="flex items-center gap-2 font-semibold text-[#0F172A]">
-                      <span className="max-w-[150px] truncate">
-                        {selectedModel
-                          ? selectedModel.name
-                          : customDeviceName || (isCustomUnlistedDevice ? 'Unlisted' : '—')}
-                      </span>
-                      {selectedBrand && currentStep !== 2 && (
-                        <button
-                          type="button"
-                          onClick={() => navigateToStep(2)}
-                          className="cursor-pointer font-mono text-[10px] text-[#187BB2] underline"
-                        >
-                          Edit
-                        </button>
-                      )}
+                    <dd className="max-w-[165px] truncate font-semibold text-[#0F172A]">
+                      {selectedModel ? selectedModel.name : '—'}
                     </dd>
                   </div>
-
-                  {!isCustomUnlistedDevice && (
-                    <div className="flex items-center justify-between py-2.5">
-                      <dt className="text-[#64748B]">Storage</dt>
-                      <dd className="flex items-center gap-2 font-semibold text-[#0F172A]">
-                        <span>{selectedStorage ?? '—'}</span>
-                        {selectedStorage && currentStep > 3 && (
-                          <button
-                            type="button"
-                            onClick={() => navigateToStep(3)}
-                            className="cursor-pointer font-mono text-[10px] text-[#187BB2] underline"
-                          >
-                            Edit
-                          </button>
-                        )}
-                      </dd>
-                    </div>
-                  )}
-
-                  {liveValuation && currentStep >= 4 && !isCustomUnlistedDevice && (
-                    <div className="flex items-center justify-between py-2.5">
-                      <dt className="text-[#64748B]">Condition</dt>
-                      <dd className="flex items-center gap-2 font-semibold text-[#0F172A]">
-                        <span className="max-w-[135px] truncate">
-                          {liveValuation.appliedTierTitle}
-                        </span>
-                        {currentStep > 4 && (
-                          <button
-                            type="button"
-                            onClick={() => navigateToStep(4)}
-                            className="cursor-pointer font-mono text-[10px] text-[#187BB2] underline"
-                          >
-                            Edit
-                          </button>
-                        )}
-                      </dd>
-                    </div>
-                  )}
+                  <div className="flex items-center justify-between py-2">
+                    <dt className="text-[#64748B]">Storage</dt>
+                    <dd className="font-mono font-semibold text-[#0F172A]">
+                      {selectedStorage ?? '—'}
+                    </dd>
+                  </div>
+                  <div className="flex items-center justify-between py-2">
+                    <dt className="text-[#64748B]">Condition</dt>
+                    <dd className="max-w-[165px] truncate font-semibold text-[#0F172A]">
+                      {selectedCondition
+                        ? (CONDITION_TIERS.find((t) => t.id === selectedCondition)?.shortLabel ??
+                          '—')
+                        : '—'}
+                    </dd>
+                  </div>
                 </dl>
 
-                <div className="mt-4 rounded-2xl bg-[#0B1120] p-4.5 text-white">
+                <div className="mt-3.5 rounded-2xl bg-[#0B1120] p-4 text-white">
                   <p className="font-mono text-[10px] tracking-[0.1em] text-slate-400 uppercase">
-                    {!liveValuation
-                      ? 'Estimate'
-                      : liveValuation.isAgentQuote
-                        ? 'Custom Quote'
-                        : currentStep <= 2
-                          ? 'Max Value'
-                          : 'Estimated Price'}
+                    {selectedCondition ? 'Evaluated Value' : 'Maximum Value'}
                   </p>
-                  <p className="mt-1 font-['Plus_Jakarta_Sans'] text-2xl font-extrabold tracking-[-0.03em] text-white">
+                  <p className="mt-0.5 font-['Plus_Jakarta_Sans'] text-2xl font-extrabold tracking-[-0.03em] text-white">
                     {liveValuation ? (
                       liveValuation.isAgentQuote ? (
                         <span className="text-lg text-[#5CC2F8]">Reply by agent</span>
-                      ) : currentStep <= 2 ? (
-                        <AnimatedAed amount={liveValuation.maxPossibleAed} prefix="Up to " />
-                      ) : (
+                      ) : selectedCondition ? (
                         <AnimatedAed amount={liveValuation.finalEstimateAed} />
+                      ) : (
+                        <AnimatedAed amount={liveValuation.maxPossibleAed} prefix="Up to " />
                       )
                     ) : (
-                      <span className="text-sm font-semibold text-slate-300">
-                        Select model
-                      </span>
+                      <span className="text-sm font-semibold text-slate-300">Select model</span>
                     )}
                   </p>
-                </div>
-
-                <div className="mt-4 space-y-2 text-xs text-[#64748B]">
-                  <div className="flex items-center gap-2">
-                    <ShieldCheck className="h-4 w-4 shrink-0 text-[#2095D3]" />
-                    <span>Certified data wipe</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Truck className="h-4 w-4 shrink-0 text-[#2095D3]" />
-                    <span>Free UAE pickup</span>
-                  </div>
                 </div>
               </div>
             </aside>
           </div>
         )}
+
+        {/* =================================================================
+            STEP 5: EVALUATION (Compact Offer Breakdown + Quick Sell Confirm)
+           ================================================================= */}
+        {currentStep === 5 && liveValuation && (
+          <section key="step-5" className={slideAnimationClass}>
+            <div className="mb-2.5 flex items-center justify-between gap-2 sm:mb-4">
+              <div className="flex min-w-0 items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleStepBack}
+                  aria-label="Previous step"
+                  className="btn-press flex h-8.5 w-8.5 shrink-0 cursor-pointer items-center justify-center rounded-full border border-[#CBD5E1] bg-white text-[#0F172A] hover:border-[#2095D3]"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                </button>
+                <h1 className="truncate font-['Plus_Jakarta_Sans'] text-lg font-extrabold tracking-[-0.03em] text-[#0F172A] sm:text-2xl">
+                  Phone evaluation
+                </h1>
+              </div>
+
+              <span className="inline-flex items-center gap-1 rounded-full bg-[#EBF7FD] px-2.5 py-1 font-mono text-[10.5px] font-semibold text-[#187BB2]">
+                <Sparkles className="h-3 w-3" />
+                7-Day Lock
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 items-start gap-3.5 lg:grid-cols-12 lg:gap-6">
+              {/* Left Column on Desktop / Top Card on Phone: Evaluated Price & Summary */}
+              <div className="min-w-0 space-y-2.5 lg:col-span-5">
+                <div className="overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white shadow-[0_10px_28px_rgba(15,23,42,0.05)] sm:rounded-3xl">
+                  <div className="bg-[#0B1120] p-4 text-white sm:p-5">
+                    <div className="flex items-center gap-3">
+                      {selectedModel && (
+                        <div className="flex h-13 w-13 shrink-0 items-center justify-center rounded-xl bg-white p-1.5 sm:h-15 sm:w-15">
+                          <img
+                            src={selectedModel.image}
+                            alt={selectedModel.name}
+                            width={60}
+                            height={60}
+                            className="h-full w-full object-contain"
+                          />
+                        </div>
+                      )}
+
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-xs font-medium text-slate-300">
+                          {selectedModel
+                            ? `${selectedBrand?.name ?? ''} ${selectedModel.name} · ${selectedStorage}`
+                            : customDeviceName || 'Custom Unlisted Phone'}
+                        </p>
+                        <p className="mt-0.5 font-['Plus_Jakarta_Sans'] text-2xl font-extrabold tracking-[-0.03em] text-white tabular-nums sm:text-3xl">
+                          {liveValuation.isAgentQuote ? (
+                            <span className="text-xl text-[#5CC2F8]">Reply by Agent</span>
+                          ) : (
+                            <AnimatedAed amount={liveValuation.finalEstimateAed} />
+                          )}
+                        </p>
+                        <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-slate-300">
+                          <span className="rounded-full bg-white/10 px-2 py-0.5 font-mono text-[10px] text-[#5CC2F8]">
+                            {liveValuation.appliedTierTitle}
+                          </span>
+                          {!liveValuation.isAgentQuote && quantity > 1 && (
+                            <span className="font-mono text-[10.5px] text-slate-300 tabular-nums">
+                              {formatAed(liveValuation.unitEstimateAed)} &times; {quantity}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Compact Valuation Breakdown */}
+                  {!liveValuation.isAgentQuote && (
+                    <div className="divide-y divide-[#F1F5F9] bg-[#F8FAFC] px-4 py-2.5 text-xs">
+                      {liveValuation.lineItems.map((item) => (
+                        <div
+                          key={item.id}
+                          className="flex items-center justify-between gap-3 py-1.5"
+                        >
+                          <span className="truncate text-[#475569]">{item.label}</span>
+                          <span
+                            className={`shrink-0 font-mono font-semibold tabular-nums ${
+                              item.kind === 'deduction' ? 'text-[#DC2626]' : 'text-[#0F172A]'
+                            }`}
+                          >
+                            {item.amountAed >= 0
+                              ? formatAed(item.amountAed)
+                              : `-${formatAed(Math.abs(item.amountAed))}`}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Compact Linked User Account Bar (Full Info Lives in Top-Right Profile Dashboard) */}
+                <Link
+                  to="/dashboard"
+                  className="flex items-center justify-between gap-2 rounded-xl border border-[#E2E8F0] bg-white px-3.5 py-2.5 text-xs transition-colors hover:border-[#2095D3]"
+                >
+                  <div className="flex min-w-0 items-center gap-2">
+                    <User className="h-4 w-4 shrink-0 text-[#2095D3]" />
+                    <span className="truncate font-medium text-[#0F172A]">
+                      {DEFAULT_B2B_ACCOUNT.contactPerson} ·{' '}
+                      <span className="text-[#64748B]">
+                        {DEFAULT_B2B_ACCOUNT.tradeLicenseEmirate}
+                      </span>
+                    </span>
+                  </div>
+                  <span className=" inline-flex shrink-0 items-center gap-0.5 font-semibold text-[#187BB2]">
+                    <span>My Info</span>
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  </span>
+                </Link>
+              </div>
+
+              {/* Right Column on Desktop / Compact Confirmation Card on Phone */}
+              <form
+                onSubmit={validateAndSubmit}
+                noValidate
+                className="min-w-0 rounded-2xl border border-[#E2E8F0] bg-white p-3.5 shadow-[0_8px_24px_rgba(15,23,42,0.03)] sm:rounded-3xl sm:p-5 lg:col-span-7"
+              >
+                <div className="space-y-3">
+                  {isCustomUnlistedDevice && (
+                    <div>
+                      <label
+                        htmlFor="custom-device-name"
+                        className="block text-[11px] font-semibold text-[#0F172A]"
+                      >
+                        Brand, Model &amp; Storage *
+                      </label>
+                      <input
+                        id="custom-device-name"
+                        type="text"
+                        value={customDeviceName}
+                        onChange={(e) => setCustomDeviceName(e.target.value)}
+                        placeholder="e.g. Honor Magic6 Pro 512 GB"
+                        className="mt-1 h-10 w-full rounded-xl border border-[#CBD5E1] bg-white px-3.5 text-base text-[#0F172A] focus:border-[#2095D3] focus:outline-none sm:text-sm"
+                      />
+                      {formErrors.customDeviceName && (
+                        <p className="mt-1 text-[11px] font-medium text-[#DC2626]">
+                          {formErrors.customDeviceName}
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Row 1: Quantity + Region Spec */}
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <div>
+                      <label
+                        htmlFor="sale-quantity"
+                        className="block text-[11px] font-semibold text-[#0F172A]"
+                      >
+                        Quantity
+                      </label>
+                      <div className="mt-1 flex h-10 items-center rounded-xl border border-[#CBD5E1] bg-white px-1.5">
+                        <button
+                          type="button"
+                          onClick={() => adjustQuantity(-1)}
+                          aria-label="Decrease quantity"
+                          className="flex h-7.5 w-7.5 cursor-pointer items-center justify-center rounded-lg text-[#0F172A] hover:bg-[#F6F8FB]"
+                        >
+                          <Minus className="h-3.5 w-3.5" />
+                        </button>
+                        <input
+                          id="sale-quantity"
+                          type="number"
+                          min={1}
+                          max={500}
+                          value={quantity}
+                          onChange={(e) =>
+                            setQuantity(
+                              Math.min(500, Math.max(1, parseInt(e.target.value, 10) || 1))
+                            )
+                          }
+                          className="w-full bg-transparent text-center font-mono text-base font-bold text-[#0F172A] focus:outline-none sm:text-sm"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => adjustQuantity(1)}
+                          aria-label="Increase quantity"
+                          className="flex h-7.5 w-7.5 cursor-pointer items-center justify-center rounded-lg text-[#0F172A] hover:bg-[#F6F8FB]"
+                        >
+                          <Plus className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div>
+                      <span className="block text-[11px] font-semibold text-[#0F172A]">
+                        Region Spec
+                      </span>
+                      <div className="mt-1 grid h-10 grid-cols-2 gap-1.5">
+                        {(['UAE TDRA', 'International'] as const).map((reg) => (
+                          <button
+                            key={reg}
+                            type="button"
+                            onClick={() => setDeviceSpecRegion(reg)}
+                            className={`btn-press cursor-pointer rounded-xl border px-1.5 text-[11px] font-semibold ${
+                              deviceSpecRegion === reg
+                                ? 'border-[#2095D3] bg-[#2095D3] text-white'
+                                : 'border-[#CBD5E1] bg-white text-[#64748B]'
+                            }`}
+                          >
+                            {reg === 'International' ? "Int'l" : 'UAE TDRA'}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Row 2: IMEI or Batch Ref */}
+                  <div>
+                    <label
+                      htmlFor="imei-batch-ref"
+                      className="block text-[11px] font-semibold text-[#0F172A]"
+                    >
+                      {quantity > 1 ? 'Batch Ref / Primary IMEI *' : 'IMEI or Serial No. *'}
+                    </label>
+                    <div className="relative mt-1">
+                      <Hash className="pointer-events-none absolute top-1/2 left-3 h-3.5 w-3.5 -translate-y-1/2 text-[#64748B]" />
+                      <input
+                        id="imei-batch-ref"
+                        type="text"
+                        value={imeiOrBatchRef}
+                        onChange={(e) => setImeiOrBatchRef(e.target.value)}
+                        placeholder={
+                          quantity > 1
+                            ? 'Batch reference or primary IMEI'
+                            : '15-digit IMEI (*#06#) or Serial No.'
+                        }
+                        className="h-10 w-full rounded-xl border border-[#CBD5E1] bg-white pr-3.5 pl-8.5 font-mono text-base text-[#0F172A] placeholder:font-sans placeholder:text-xs placeholder:text-slate-400 focus:border-[#2095D3] focus:outline-none sm:text-xs"
+                      />
+                    </div>
+                    {formErrors.imeiOrBatchRef && (
+                      <p className="mt-1 text-[11px] font-medium text-[#DC2626]">
+                        {formErrors.imeiOrBatchRef}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Row 3: Compact 3-Column Pickup Slot Selector */}
+                  <div>
+                    <div className="flex items-center gap-1.5">
+                      <CalendarClock className="h-3.5 w-3.5 text-[#2095D3]" />
+                      <span className="text-[11px] font-semibold text-[#0F172A]">
+                        Free Collection Slot
+                      </span>
+                    </div>
+                    <div className="mt-1.5 grid grid-cols-3 gap-1.5 sm:gap-2">
+                      {(
+                        [
+                          {
+                            id: 'today-evening' as PickupSlot,
+                            day: 'Today',
+                            hours: '6–9 PM',
+                          },
+                          {
+                            id: 'tomorrow-morning' as PickupSlot,
+                            day: 'Tmrw AM',
+                            hours: '10–1 PM',
+                          },
+                          {
+                            id: 'tomorrow-evening' as PickupSlot,
+                            day: 'Tmrw PM',
+                            hours: '5–9 PM',
+                          },
+                        ] as const
+                      ).map((slot) => {
+                        const active = pickupSlot === slot.id;
+                        return (
+                          <button
+                            key={slot.id}
+                            type="button"
+                            onClick={() => setPickupSlot(slot.id)}
+                            className={`btn-press cursor-pointer rounded-xl border px-2 py-2 text-center transition-colors ${
+                              active
+                                ? 'border-[#2095D3] bg-[#F0F8FD] ring-1 ring-[#2095D3]'
+                                : 'border-[#E2E8F0] bg-white hover:border-[#2095D3]'
+                            }`}
+                          >
+                            <span className="block font-['Plus_Jakarta_Sans'] text-[11px] font-bold text-[#0F172A] sm:text-xs">
+                              {slot.day}
+                            </span>
+                            <span className="block font-mono text-[10px] text-[#64748B]">
+                              {slot.hours}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Notes (Always visible for Agent Quote, compact toggle otherwise) */}
+                  {liveValuation.isAgentQuote || showOptionalNotes ? (
+                    <div>
+                      <label
+                        htmlFor="sale-notes"
+                        className="block text-[11px] font-semibold text-[#0F172A]"
+                      >
+                        {liveValuation.isAgentQuote
+                          ? 'Condition & Issue Details *'
+                          : 'Pickup / PO Note (Optional)'}
+                      </label>
+                      <textarea
+                        id="sale-notes"
+                        rows={2}
+                        value={notes}
+                        onChange={(e) => setNotes(e.target.value)}
+                        placeholder={
+                          liveValuation.isAgentQuote
+                            ? 'Describe screen, body, battery %, or hardware issues...'
+                            : 'Optional PO number or courier gate note...'
+                        }
+                        className="mt-1 w-full rounded-xl border border-[#CBD5E1] bg-white px-3 py-2 text-base text-[#0F172A] focus:border-[#2095D3] focus:outline-none sm:text-xs"
+                      />
+                      {formErrors.notes && (
+                        <p className="mt-1 text-[11px] font-medium text-[#DC2626]">
+                          {formErrors.notes}
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setShowOptionalNotes(true)}
+                      className="inline-flex cursor-pointer items-center gap-1 text-[11px] font-semibold text-[#64748B] hover:text-[#2095D3]"
+                    >
+                      <Plus className="h-3 w-3" />
+                      <span>Add optional note or PO reference</span>
+                    </button>
+                  )}
+
+                  {/* Primary Confirm CTA */}
+                  <button
+                    type="submit"
+                    className="btn-press flex h-11.5 w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-[#2095D3] px-6 text-xs font-bold tracking-[0.04em] text-white uppercase shadow-[0_8px_20px_rgba(32,149,211,0.26)] hover:bg-[#187BB2] sm:h-12 sm:text-sm"
+                  >
+                    <span>
+                      {liveValuation.isAgentQuote
+                        ? 'Submit for Agent Evaluation'
+                        : `Confirm & Sell · ${formatAed(liveValuation.finalEstimateAed)}`}
+                    </span>
+                    <ArrowRight className="h-4 w-4" />
+                  </button>
+                </div>
+              </form>
+            </div>
+          </section>
+        )}
       </div>
+
+      {/* ===================================================================
+          QUICK INSPECTION TIPS SHEET (On-Demand Modal from Step 4 Condition)
+         =================================================================== */}
+      {showInspectionTips && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Phone inspection guide"
+          className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/50 p-3 backdrop-blur-xs sm:items-center"
+          onClick={() => setShowInspectionTips(false)}
+        >
+          <div
+            className="route-enter w-full max-w-md rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-2xl sm:rounded-3xl sm:p-5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between gap-2 border-b border-[#F1F5F9] pb-3">
+              <h2 className="font-['Plus_Jakarta_Sans'] text-sm font-extrabold text-[#0F172A] sm:text-base">
+                Quick Phone Check Guide
+              </h2>
+              <button
+                type="button"
+                onClick={() => setShowInspectionTips(false)}
+                aria-label="Close guide"
+                className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-[#F6F8FB] text-[#0F172A] hover:bg-slate-200"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="mt-3 space-y-2.5">
+              {INSPECTION_VIDEO_CONFIG.checkpoints.map((cp) => (
+                <div
+                  key={cp.step}
+                  className="flex items-start gap-2.5 rounded-xl bg-[#F8FAFC] p-3"
+                >
+                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#2095D3]" />
+                  <div>
+                    <p className="text-xs font-bold text-[#0F172A]">{cp.title}</p>
+                    <p className="mt-0.5 text-[11px] leading-relaxed text-[#64748B]">
+                      {cp.detail}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowInspectionTips(false)}
+              className="btn-press mt-4 h-10 w-full cursor-pointer rounded-full bg-[#2095D3] text-xs font-bold text-white hover:bg-[#187BB2]"
+            >
+              Got It
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ===================================================================
+          FIXED BOTTOM SCREEN PROGRESSION BARS (All 5 Steps Always Visible)
+         =================================================================== */}
+      <nav
+        aria-label="Phone selling progress"
+        className="fixed right-0 bottom-0 left-0 z-40 border-t border-[#E2E8F0] bg-white/95 px-2.5 pt-2 pb-[max(0.55rem,env(safe-area-inset-bottom))] shadow-[0_-6px_24px_rgba(15,23,42,0.06)] backdrop-blur-md sm:px-8 sm:py-2.5"
+      >
+        <ol className="mx-auto grid max-w-[1280px] grid-cols-5 gap-1.5 sm:gap-2.5">
+          {STEPS.map((item) => {
+            const isActive = currentStep === item.step;
+            const isCompleted = currentStep > item.step;
+            const unlocked = canNavigateToStep(item.step);
+            const caption = getStepSummaryCaption(item.step);
+
+            return (
+              <li key={item.step} className="min-w-0">
+                <button
+                  type="button"
+                  disabled={!unlocked}
+                  onClick={() => unlocked && navigateToStep(item.step)}
+                  aria-current={isActive ? 'step' : undefined}
+                  className={`flex w-full min-w-0 flex-col rounded-xl px-1.5 py-1.5 text-left transition-colors sm:px-3 sm:py-2 ${
+                    isActive
+                      ? 'cursor-pointer bg-[#F0F8FD] ring-1 ring-[#2095D3]/35'
+                      : unlocked
+                        ? 'cursor-pointer hover:bg-[#F6F8FB]'
+                        : 'cursor-not-allowed opacity-65'
+                  }`}
+                >
+                  {/* Individual Step Progression Bar */}
+                  <div
+                    aria-hidden="true"
+                    className="h-1.5 w-full overflow-hidden rounded-full bg-[#E2E8F0] sm:h-2"
+                  >
+                    <div
+                      className={`h-full rounded-full transition-all duration-300 ease-out ${
+                        isCompleted
+                          ? 'w-full bg-[#187BB2]'
+                          : isActive
+                            ? 'w-full bg-[#2095D3]'
+                            : 'w-0 bg-transparent'
+                      }`}
+                    />
+                  </div>
+
+                  {/* Step Name + Status */}
+                  <div className="mt-1.5 flex items-center justify-between gap-1">
+                    <span
+                      className={`truncate text-[10px] leading-none font-bold tracking-[-0.01em] sm:text-xs ${
+                        isActive
+                          ? 'text-[#090D16]'
+                          : isCompleted
+                            ? 'text-[#187BB2]'
+                            : 'text-[#64748B]'
+                      }`}
+                    >
+                      {item.label}
+                    </span>
+
+                    {isCompleted && (
+                      <Check className="hidden h-3 w-3 shrink-0 text-[#2095D3] sm:block" />
+                    )}
+                  </div>
+
+                  {/* Live Selection Micro-Caption */}
+                  <span
+                    className={`mt-0.5 truncate font-mono text-[9px] leading-tight sm:text-[10.5px] ${
+                      isActive
+                        ? 'font-semibold text-[#187BB2]'
+                        : isCompleted
+                          ? 'text-[#475569]'
+                          : 'text-[#94A3B8]'
+                    }`}
+                  >
+                    {caption}
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ol>
+      </nav>
     </main>
   );
+};
+
+export const SellPage: React.FC = () => {
+  const [searchParams] = useSearchParams();
+  return <SellPageFlow key={searchParams.toString()} searchParams={searchParams} />;
 };
 
 export default SellPage;

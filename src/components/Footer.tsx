@@ -1,6 +1,8 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 
+const CURRENT_YEAR = new Date().getFullYear();
+
 export const Footer: React.FC = () => {
   return (
     <footer className="bg-[#0B1120] text-white">
@@ -100,7 +102,7 @@ export const Footer: React.FC = () => {
         </div>
 
         <div className="mt-7 flex flex-col items-start justify-between gap-3 text-xs text-slate-500 sm:flex-row sm:items-center">
-          <p>© {new Date().getFullYear()} arsouq.com — Online Mobile Store. All prices in AED.</p>
+          <p>© {CURRENT_YEAR} arsouq.com — Online Mobile Store. All prices in AED.</p>
           <p>Brand names and marks belong to their respective owners.</p>
         </div>
       </div>

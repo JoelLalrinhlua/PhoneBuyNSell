@@ -64,35 +64,18 @@ export interface ConditionTier {
   indicatorHex: string;
 }
 
-export type BatteryHealthTier = '90-above' | '85-89' | 'below-85';
-
-export type ScreenStatus =
-  | 'no-scratch'
-  | 'small-scratch'
-  | 'medium-deep-scratch'
-  | 'display-crack'
-  | 'display-not-working';
-
-export type BodyPartsStatus =
-  | 'no-scratch-original'
-  | 'small-body-scratch'
-  | 'body-dent-scratch'
-  | 'genuine-part-changed'
-  | 'back-glass-broken-dent'
-  | 'unknown-unofficial-part';
-
-export type FunctionalStatus =
-  | 'full-working'
-  | 'mic-speaker-camera-dot'
-  | 'faceid-hardware-issue'
-  | 'other-agent-issue';
-
-export interface DeviceEvaluation {
-  batteryHealth: BatteryHealthTier;
-  screenStatus: ScreenStatus;
-  bodyPartsStatus: BodyPartsStatus;
-  functionalStatus: FunctionalStatus;
-  agentIssueDetails: string;
+export interface InspectionVideoConfig {
+  /** Drop your video file in public/videos/ and set its path here (e.g. '/videos/inspection-guide.mp4'). */
+  src: string;
+  poster: string;
+  durationLabel: string;
+  title: string;
+  subtitle: string;
+  checkpoints: {
+    step: string;
+    title: string;
+    detail: string;
+  }[];
 }
 
 export interface ValuationLineItem {
@@ -111,8 +94,9 @@ export interface ValuationBreakdown {
   maxPossibleAed: number;
   storageBaseAed: number;
   deductionAed: number;
+  unitEstimateAed: number;
+  quantity: number;
   finalEstimateAed: number;
-  priceLockDays: number;
   lineItems: ValuationLineItem[];
 }
 
@@ -125,21 +109,32 @@ export type UAEEmirate =
   | 'Fujairah'
   | 'Umm Al Quwain';
 
-export type PayoutMethod = 'uae-bank-iban' | 'instant-cash' | 'digital-wallet';
-
 export type PickupSlot = 'today-evening' | 'tomorrow-morning' | 'tomorrow-evening';
 
-export interface SellerContactDetails {
-  fullName: string;
-  phoneUae: string;
-  email: string;
-  emirate: UAEEmirate;
-  areaAndStreet: string;
-  buildingOrVilla: string;
-  pickupSlot: PickupSlot;
-  payoutMethod: PayoutMethod;
-  ibanOptional?: string;
+/**
+ * Pre-existing B2B partner account information created at registration
+ * (managed at the account/admin level, read-only during phone sell submission).
+ */
+export interface B2BAccountProfile {
+  accountCode: string;
+  companyName: string;
+  tradeLicenseEmirate: UAEEmirate;
+  contactPerson: string;
+  contactPhone: string;
+  contactEmail: string;
+  registeredAddress: string;
+  settlementMethodLabel: string;
+  maskedIban: string;
+}
+
+/**
+ * Per-sale / per-consignment required fields entered when submitting phones.
+ */
+export interface B2BSaleSubmissionDetails {
+  quantity: number;
+  imeiOrBatchRef: string;
   deviceSpecRegion: 'UAE TDRA' | 'International';
+  pickupSlot: PickupSlot;
   notes?: string;
 }
 
@@ -155,7 +150,7 @@ export interface SellSubmissionRecord {
   colorName: string;
   conditionId: ConditionId;
   conditionTitle: string;
-  evaluation: DeviceEvaluation;
   valuation: ValuationBreakdown;
-  seller: SellerContactDetails;
+  account: B2BAccountProfile;
+  saleDetails: B2BSaleSubmissionDetails;
 }

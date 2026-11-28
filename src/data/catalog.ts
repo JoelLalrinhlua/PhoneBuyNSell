@@ -1,4 +1,10 @@
-import type { Brand, ConditionTier, PhoneModel } from '../types/buyback';
+import type {
+  B2BAccountProfile,
+  Brand,
+  ConditionTier,
+  InspectionVideoConfig,
+  PhoneModel,
+} from '../types/buyback';
 
 export const BRANDS: Brand[] = [
   { id: 'apple', name: 'Apple', maxPayoutAed: 4450, deviceCount: 8 },
@@ -829,11 +835,11 @@ export const PHONE_MODELS: PhoneModel[] = [
 export const CONDITION_TIERS: ConditionTier[] = [
   {
     id: 'zero-scratch',
-    title: 'Zero Scratch (Flawless)',
+    title: 'Flawless (Zero Scratch)',
     shortLabel: 'Flawless',
     deductionAed: 0,
     indicatorHex: '#059669',
-    summary: 'Full Working · No Scratch on Body & Display · Battery Health 90% or Above',
+    summary: 'No scratches on screen or body · 100% functional · Battery 90%+',
     criteria: [
       'Screen: No scratches',
       'Body: No dents or scratches',
@@ -844,11 +850,10 @@ export const CONDITION_TIERS: ConditionTier[] = [
   {
     id: 'small-scratch',
     title: 'Small Scratch',
-    shortLabel: '-AED 150',
+    shortLabel: 'Small Scratch',
     deductionAed: 150,
     indicatorHex: '#2095D3',
-    summary:
-      'Full Working, Small Scratch on Body or Display, If even Both, Battery Health 85% or Above',
+    summary: 'Light scratch on body or screen (or both) · Battery 85%+',
     criteria: [
       'Full working condition',
       'Small scratch on body or display (even if both)',
@@ -858,11 +863,10 @@ export const CONDITION_TIERS: ConditionTier[] = [
   {
     id: 'medium-scratch',
     title: 'Medium Scratch',
-    shortLabel: '-AED 400',
+    shortLabel: 'Medium Scratch',
     deductionAed: 400,
     indicatorHex: '#0284C7',
-    summary:
-      'Full Working, Small Scratch/Dent on Body, Display Small Scratch or deep, If even Both, Battery Health 85% or Above',
+    summary: 'Small body dent or deeper screen scratch · Battery 85%+',
     criteria: [
       'Full working condition',
       'Small scratch or dent on body',
@@ -873,11 +877,10 @@ export const CONDITION_TIERS: ConditionTier[] = [
   {
     id: 'parts-change-genuine',
     title: 'Parts Change (Genuine Part)',
-    shortLabel: '-AED 500',
+    shortLabel: 'Genuine Part',
     deductionAed: 500,
     indicatorHex: '#D97706',
-    summary:
-      'Full Working, No Scratch on Body & Display, Battery Health 85% or Above, Only one Genuine Official Part Changed',
+    summary: 'No scratches · 1 genuine official part replaced · Battery 85%+',
     criteria: [
       'Full working, no scratch on body & display',
       'Battery Health 85% or above',
@@ -887,11 +890,10 @@ export const CONDITION_TIERS: ConditionTier[] = [
   {
     id: 'more-scratch-broken',
     title: 'More Scratch / Dent / Broken',
-    shortLabel: '-AED 700',
+    shortLabel: 'Dent / Cracked',
     deductionAed: 700,
     indicatorHex: '#EA580C',
-    summary:
-      'Issues like mic, speaker, camera black dot, Back Glass broken / Frame Dent, Display Crack (Network & core working)',
+    summary: 'Cracked glass, frame dent, or minor mic, speaker, or camera dot',
     criteria: [
       'Back glass broken, frame dent, or display crack',
       'Minor mic, speaker, or camera black dot issue',
@@ -901,11 +903,10 @@ export const CONDITION_TIERS: ConditionTier[] = [
   {
     id: 'hardware-unknown-parts',
     title: 'Hardware Issue / Unknown Parts',
-    shortLabel: '-AED 1,000',
+    shortLabel: 'Hardware Issue',
     deductionAed: 1000,
     indicatorHex: '#DC2626',
-    summary:
-      'Face ID not working, Display not working due to display damage, or any parts changed from unofficials',
+    summary: 'Face ID issue, damaged non-working display, or unofficial parts',
     criteria: [
       'Face ID / biometrics not working',
       'Display not working due to display damage',
@@ -915,11 +916,10 @@ export const CONDITION_TIERS: ConditionTier[] = [
   {
     id: 'others-agent',
     title: 'Others',
-    shortLabel: 'Reply by agent',
+    shortLabel: 'Agent Quote',
     deductionAed: null,
     indicatorHex: '#52525B',
-    summary:
-      'If you have a device or issue not in the selection, detail it to our agent so our agent will give you the best price.',
+    summary: 'Unlisted condition or issue — describe for a custom agent offer',
     criteria: [
       'Unlisted device condition or multiple custom repairs',
       'Detail your phone directly for a custom agent offer',
@@ -936,3 +936,50 @@ export const UAE_EMIRATES = [
   'Fujairah',
   'Umm Al Quwain',
 ] as const;
+
+/**
+ * Inspection guide video configuration.
+ * When your video file is ready, place it in `public/videos/` and set `src`
+ * below (e.g. `src: '/videos/phone-inspection.mp4'`).
+ */
+export const INSPECTION_VIDEO_CONFIG: InspectionVideoConfig = {
+  src: '',
+  poster: '/images/editorial-handover.jpg',
+  durationLabel: '0:45',
+  title: 'How to Inspect the Phone',
+  subtitle:
+    'Watch this quick guide to verify screen glass, frame condition, battery health, and sensors before viewing your approximate offer.',
+  checkpoints: [
+    {
+      step: '01',
+      title: 'Display & Frame Check',
+      detail: 'Tilt the screen and back glass under light to check for hairline scratches, dents, or cracks.',
+    },
+    {
+      step: '02',
+      title: 'Battery Health Check',
+      detail: 'Check Settings > Battery Health (90%+ for Flawless, 85%+ for Small or Medium Scratch).',
+    },
+    {
+      step: '03',
+      title: 'Sensors & Genuine Parts',
+      detail: 'Confirm Face ID / Touch ID, cameras, audio, and official parts history are working.',
+    },
+  ],
+};
+
+/**
+ * Default signed-in B2B partner profile (pre-populated from account registration,
+ * read-only during individual phone / batch sell submissions).
+ */
+export const DEFAULT_B2B_ACCOUNT: B2BAccountProfile = {
+  accountCode: 'B2B-DXB-4082',
+  companyName: 'Al Noor Mobile Trading LLC',
+  tradeLicenseEmirate: 'Dubai',
+  contactPerson: 'Tariq Al Mansoori',
+  contactPhone: '+971 50 482 9100',
+  contactEmail: 'procurement@alnoormobile.ae',
+  registeredAddress: 'Warehouse 14, Al Quoz Industrial Area 3, Dubai, UAE',
+  settlementMethodLabel: 'Registered Corporate Bank IBAN',
+  maskedIban: 'AE07 •••• •••• •••• •••• 4560',
+};

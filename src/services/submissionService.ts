@@ -1,6 +1,6 @@
 import type { SellSubmissionRecord } from '../types/buyback';
 
-const SUBMISSIONS_STORAGE_KEY = 'arsouq_submissions_v1';
+const SUBMISSIONS_STORAGE_KEY = 'arsouq_b2b_submissions_v2';
 
 export function saveSellSubmission(
   payload: Omit<SellSubmissionRecord, 'referenceCode' | 'createdAtIso' | 'status'>
@@ -8,7 +8,7 @@ export function saveSellSubmission(
   const randomDigits = Math.floor(10000 + Math.random() * 90000);
   const record: SellSubmissionRecord = {
     ...payload,
-    referenceCode: `ARS-DXB-${randomDigits}`,
+    referenceCode: `ARS-B2B-${randomDigits}`,
     createdAtIso: new Date().toISOString(),
     status: payload.valuation.isAgentQuote ? 'agent_quote_pending' : 'pending_pickup',
   };
